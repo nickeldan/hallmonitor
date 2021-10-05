@@ -27,12 +27,12 @@ hamoPcapCreate(hamoPcap *handle, const char *whitelist_file);
 /**
  * @brief Processes any captured packets.
  *
- * @param phandle The PCAP handle.
+ * @param handle A pointer to the hamoPcap.
  *
  * @return HAMO_RET_OK if successful and an error code otherwise.
  */
 int
-hamoPcapDispatch(pcap_t *phandle);
+hamoPcapDispatch(hamoPcap *handle);
 
 /**
  * @brief Frees any resources associated with a hamoPcap.

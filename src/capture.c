@@ -166,6 +166,18 @@ error:
     return ret;
 }
 
+int
+hamoPcapDispatch(hamoPcap *handle)
+{
+    if (!handle) {
+        VASQ_ERROR(logger, "handle cannot be NULL");
+        return HAMO_RET_USAGE;
+    }
+
+    PLACEHOLDER();
+    return HAMO_RET_USAGE;
+}
+
 void
 hamoPcapClose(hamoPcap *handle)
 {
