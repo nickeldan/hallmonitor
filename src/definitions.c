@@ -18,7 +18,7 @@ hamoLoggerInit(void)
     int ret;
 
     ret = vasqLoggerCreate(STDOUT_FILENO, LL_USE, "%t [%L]%_ %f:%l: %M\n", NULL, &logger);
-    if ( ret != VASQ_RET_OK ) {
+    if (ret != VASQ_RET_OK) {
         fprintf(stderr, "vasqLoggerCreate: %s\n", vasqErrorString(ret));
         return ret;
     }
