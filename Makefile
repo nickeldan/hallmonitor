@@ -3,7 +3,7 @@ debug ?= no
 CLEAN_TARGETS :=
 DEPS_FILES :=
 
-CFLAGS := -std=gnu99 -fdiagnostics-color -Wall -Wextra -DVASQ_ALLOW_PLACEHOLDER -DVASQ_WARN_PLACEHOLDER
+CFLAGS := -std=gnu99 -fdiagnostics-color -Wall -Wextra #-DVASQ_ALLOW_PLACEHOLDER -DVASQ_WARN_PLACEHOLDER
 ifeq ($(debug),yes)
 	CFLAGS += -O0 -g -DDEBUG
 else
