@@ -18,6 +18,7 @@
 #define TCP_DPORT_OFFSET    2
 #define TCP_FLAGS_OFFSET    13
 #define TCP_SYN_FLAG        0x02
+#define TCP_ACK_FLAG        0x10
 
 static inline uint16_t
 fetchU16(const uint8_t *src)
@@ -35,7 +36,7 @@ determineLinkLayerSize(int link_type, const uint8_t *data, unsigned int size)
         return 14;
     }
     else if (link_type == DLT_LINUX_SLL) {
-        return 20;
+        return 16;
     }
     /*
         else if ( link_type == DLT_IEEE802_11 ) {
@@ -89,7 +90,7 @@ static bool
 parseTCPHeader(const uint8_t *header, unsigned int size, hamoRecord *record)
 {
     if (size < TCP_MIN_HEADER_SIZE) {
-        VASQ_ERROR(logger, "Not enough bytes captured");
+        VASQ_WARNING(logger, "Not enough bytes captured");
         return false;
     }
 
@@ -98,53 +99,63 @@ parseTCPHeader(const uint8_t *header, unsigned int size, hamoRecord *record)
         return false;
     }
 
+    if (header[TCP_FLAGS_OFFSET] & TCP_ACK_FLAG) {
+        record->ack_flag = true;
+    }
+
     record->sport = fetchU16(header + TCP_SPORT_OFFSET);
     record->dport = fetchU16(header + TCP_DPORT_OFFSET);
 
     return true;
 }
 
-static bool
-parsePacket(int link_type, const u_char *data, unsigned int size, hamoRecord *record)
+static void
+parsePacket(u_char *user, const struct pcap_pkthdr *header, const u_char *data)
 {
-    unsigned int so_far;
+    unsigned int size = header->caplen, so_far;
+    int link_type = *(int *)user;
+    hamoRecord record = {0};
 
+    VASQ_DEBUG(logger, "Captured %u bytes of a %u-byte packet", size, header->len);
     VASQ_HEXDUMP(logger, "Packet", data, size);
 
     so_far = determineLinkLayerSize(link_type, data, size);
     if (so_far == (unsigned int)-1) {
-        return false;
+        return;
     }
 
     if (size <= so_far) {
-        VASQ_ERROR(logger, "Not enough bytes captured");
-        return false;
+        VASQ_WARNING(logger, "Not enough bytes captured");
+        return;
     }
 
     switch (data[so_far] >> 4) {
     case 4:
-        record->ipv6 = false;
-        if (!parseIPv4Header(data + so_far, size - so_far, record, &so_far)) {
-            return false;
+        if (!parseIPv4Header(data + so_far, size - so_far, &record, &so_far)) {
+            return;
         }
         break;
 
     case 6:
 #ifdef HAMO_IPV6_SUPPORTED
-        record->ip6 = true;
-        if (!parseIPv6Header(data + so_far, size - so_far, record, &so_far)) {
-            return false;
+        ctx->record.ip6 = true;
+        if (!parseIPv6Header(data + so_far, size - so_far, &record, &so_far)) {
+            return;
         }
         break;
 #else
         VASQ_ERROR(logger, "We've somehow captured an IPv6 packet despite our BPF");
-        return false;
+        return;
 #endif
 
-    default: VASQ_ERROR(logger, "Invalid IP version: %u", (data[so_far] >> 4)); return false;
+    default: VASQ_ERROR(logger, "Invalid IP version: %u", (data[so_far] >> 4)); return;
     }
 
-    return parseTCPHeader(data + so_far, size - so_far, record);
+    if (!parseTCPHeader(data + so_far, size - so_far, &record)) {
+        return;
+    }
+
+    hamoJournalWrite(&record);
 }
 
 bool
@@ -160,32 +171,25 @@ hamoLinkTypeSupported(int link_type)
 }
 
 int
-hamoProcessPacket(pcap_t *phandle)
+hamoProcessPackets(pcap_t *phandle)
 {
-    const u_char *pkt_data;
-    struct pcap_pkthdr *pkt_header;
-    hamoRecord record;
+    int ret, link_type;
 
     if (!phandle) {
         VASQ_ERROR(logger, "phandle cannot be NULL");
         return HAMO_RET_USAGE;
     }
 
-    switch (pcap_next_ex(phandle, &pkt_header, &pkt_data)) {
-    case 0: VASQ_WARNING(logger, "No packets ready to be read"); return HAMO_RET_NO_PACKETS_AVAILABLE;
+    link_type = pcap_datalink(phandle);
 
-    case PCAP_ERROR: VASQ_ERROR(logger, "pcap_next_ex: %s", pcap_geterr(phandle)); return HAMO_RET_PCAP_NEXT;
-
-    default: break;
+    ret = pcap_dispatch(phandle, -1, (pcap_handler)parsePacket, (u_char *)&link_type);
+    if (ret == PCAP_ERROR_BREAK) {
+        ret = 0;
+    }
+    else if (ret == PCAP_ERROR) {
+        VASQ_ERROR(logger, "pcap_dispatch: %s", pcap_geterr(phandle));
+        ret = -1;
     }
 
-    VASQ_INFO(logger, "Captured %u bytes of a %u-byte packet", pkt_header->caplen, pkt_header->len);
-
-    if (!parsePacket(pcap_datalink(phandle), pkt_data, pkt_header->caplen, &record)) {
-        return HAMO_RET_BAD_PACKET;
-    }
-
-    record.timestamp = pkt_header->ts.tv_sec;
-
-    return hamoJournalWrite(&record);
+    return ret;
 }

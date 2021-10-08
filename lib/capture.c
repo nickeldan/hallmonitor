@@ -1,3 +1,4 @@
+#include <arpa/inet.h>
 #include <errno.h>
 #include <poll.h>
 #include <signal.h>
@@ -29,7 +30,8 @@ setBpf(pcap_t *phandle, const char *device, const char *whitelist_file)
     int ret;
     size_t len, num_entries;
     bpf_u_int32 netp, maskp;
-    char errbuf[PCAP_ERRBUF_SIZE], bpf[HAMO_BPF_MAX_SIZE] = "tcp[tcpflags] & (tcp-syn) != 0 and dst net ";
+    unsigned int mask_size;
+    char errbuf[PCAP_ERRBUF_SIZE], bpf[HAMO_BPF_MAX_SIZE] = "tcp[tcpflags] & (tcp-syn) != 0";
     hamoWhitelistEntry *entries = NULL;
     struct bpf_program program;
 
@@ -39,21 +41,28 @@ setBpf(pcap_t *phandle, const char *device, const char *whitelist_file)
         return HAMO_RET_OVERFLOW;
     }
 
+#ifdef HAMO_IPV6_SUPPORTED
+#error "IPv6 is not currently supported."
+#endif
+
     if (pcap_lookupnet(device, &netp, &maskp, errbuf) != 0) {
         VASQ_ERROR(logger, "pcap_lookupnet: %s", errbuf);
         return HAMO_RET_PCAP_LOOKUP_NET;
     }
 
-#define GET_BYTE(n) ((unsigned char *)&netp)[n]
-    BUFFER_WRITE_CHECK("%u.%u.%u.%u", GET_BYTE(0), GET_BYTE(1), GET_BYTE(2), GET_BYTE(3));
-#undef GET_BYTE
+    maskp = ntohl(maskp);
+    for (mask_size = 0; mask_size < 32; mask_size++) {
+        if (!((maskp >> (31 - mask_size)) & 0x1)) {
+            break;
+        }
+    }
 
-#ifdef HAMO_IPV6_SUPPORTED
-#error "IPv6 is not currently supported."
-    BUFFER_WRITE_CHECK(" and (ip or ip6)");
-#else
-    BUFFER_WRITE_CHECK(" and ip");
-#endif
+#define GET_BYTE(n) ((unsigned char *)&netp)[n]
+    if (netp != 0) {
+        BUFFER_WRITE_CHECK(" and dst net %u.%u.%u.%u/%u", GET_BYTE(0), GET_BYTE(1), GET_BYTE(2), GET_BYTE(3),
+                           mask_size);
+    }
+#undef GET_BYTE
 
     ret = hamoWhitelistLoad(whitelist_file, &entries, &num_entries);
     if (ret != HAMO_RET_OK) {
@@ -144,6 +153,7 @@ hamoPcapCreate(hamoPcap *handle, const char *device, const char *whitelist_file)
 {
     int ret, link_type;
     char errbuf[PCAP_ERRBUF_SIZE];
+    const char *link_type_name;
 
     if (!handle) {
         VASQ_ERROR(logger, "handle cannot be NULL");
@@ -159,11 +169,13 @@ hamoPcapCreate(hamoPcap *handle, const char *device, const char *whitelist_file)
     }
 
     link_type = pcap_datalink(handle->phandle);
+    link_type_name = pcap_datalink_val_to_name(link_type);
     if (!hamoLinkTypeSupported(link_type)) {
-        VASQ_ERROR(logger, "Unsupported data link type: %s", pcap_datalink_val_to_name(link_type));
+        VASQ_ERROR(logger, "Unsupported data link type: %s", link_type_name);
         ret = HAMO_RET_PCAP_DATALINK_UNSUPPORTED;
         goto error;
     }
+    VASQ_DEBUG(logger, "Data link type: %s", link_type_name);
 
     ret = setBpf(handle->phandle, device, whitelist_file);
     if (ret != HAMO_RET_OK) {
@@ -237,18 +249,16 @@ hamoPcapDispatch(hamoPcap *handle, int timeout, int *num_packets)
         }
 
         if (poller.revents & POLLIN) {
-            switch ((ret = hamoProcessPacket(handle->phandle))) {
-            case HAMO_RET_OK:
-                if (num_packets) {
-                    (*num_packets)++;
-                }
-                break;
+            int processed;
 
-            case HAMO_RET_BAD_PACKET: break;
+            processed = hamoProcessPackets(handle->phandle);
+            if (processed < 0) {
+                ret = HAMO_RET_PCAP_DISPATCH;
+                goto done;
+            }
 
-            case HAMO_RET_NO_PACKETS_AVAILABLE: ret = HAMO_RET_OK;
-            /* FALLTHROUGH */
-            default: goto done;
+            if (num_packets) {
+                *num_packets += processed;
             }
         }
         else {

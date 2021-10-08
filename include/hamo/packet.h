@@ -18,13 +18,13 @@ bool
 hamoLinkTypeSupported(int link_type);
 
 /**
- * @brief Processes a packet and writes it to the journal.
+ * @brief Processes all available packets and writes them to the journal.
  *
  * @param phandle The PCAP handle to use.
  *
- * @return HAMO_RET_OK if successful and an error code otherwise.
+ * @return The number of packets handled or, if an error occurred, -1 times the error code.
  */
 int
-hamoProcessPacket(pcap_t *phandle);
+hamoProcessPackets(pcap_t *phandle);
 
 #endif  // HALLMONITOR_PACKET_H

@@ -1,6 +1,5 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
-#include <time.h>
 
 #include <hamo/journal.h>
 
@@ -11,20 +10,19 @@ static void
 printRecord(const hamoRecord *record)
 {
     int af = record->ipv6 ? AF_INET6 : AF_INET;
-    time_t timestamp = record->timestamp;
-    char time_buffer[26], src_buffer[INET6_ADDRSTRLEN], dst_buffer[INET6_ADDRSTRLEN];
+    char src_buffer[INET6_ADDRSTRLEN], dst_buffer[INET6_ADDRSTRLEN];
+    const char *ack = record->ack_flag ? "-ACK" : "";
 
-    ctime_r(&timestamp, time_buffer);
     inet_ntop(af, &record->source_address, src_buffer, sizeof(src_buffer));
     inet_ntop(af, &record->destination_address, dst_buffer, sizeof(src_buffer));
 
     if (record->ipv6) {
-        VASQ_INFO(logger, "At %s, a SYN packet was sent from [%s]:%u to [%s]:%u", time_buffer, src_buffer,
-                  record->sport, dst_buffer, record->dport);
+        VASQ_INFO(logger, "SYN%s packet sent from [%s]:%u to [%s]:%u", ack, src_buffer, record->sport,
+                  dst_buffer, record->dport);
     }
     else {
-        VASQ_INFO(logger, "At %s, a SYN packet was sent from %s:%u to %s:%u", time_buffer, src_buffer,
-                  record->sport, dst_buffer, record->dport);
+        VASQ_INFO(logger, "SYN%s packet sent from %s:%u to %s:%u", ack, src_buffer, record->sport,
+                  dst_buffer, record->dport);
     }
 }
 
