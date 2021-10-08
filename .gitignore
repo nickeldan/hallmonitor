@@ -3,3 +3,6 @@
 *.a
 .vscode
 hallmonitor.code-workspace
+deps.mk
+main_deps.mk
+hamo

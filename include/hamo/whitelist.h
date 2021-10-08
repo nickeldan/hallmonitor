@@ -16,21 +16,17 @@ typedef struct hamoWhitelistEntry {
 /**
  * @brief Initializes the whitelist from a file.
  *
- * @param filename The path to the file containing the whitelist information.
+ * @param filename The path to the file containing the whitelist information.  If NULL, then an empty list
+ * will be created.
+ * @param entries A pointer to a entry array to be allocated.
+ * @param num_entries A pointer to number of entries.  Will be set by this function.
  *
  * @return HAMO_RET_OK if successful and an error code otherwise.
  */
 int
-hamoWhitelistLoad(const char *filename);
+hamoWhitelistLoad(const char *filename, hamoWhitelistEntry **entries, size_t *num_entries);
 
-/**
- * @brief Fetches an entry from the whitelist.
- *
- * @param idx The desired index in the whitelist.
- *
- * @return A pointer to the entry or NULL if idx is greater than or equal to the number of entries.
- */
-const hamoWhitelistEntry *
-hamoWhitelistEntryFetch(size_t idx);
+void
+hamoWhitelistFree(hamoWhitelistEntry *entries);
 
 #endif  // HALLMONITOR_WHITELIST_H
