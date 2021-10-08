@@ -84,7 +84,7 @@ setBpf(pcap_t *phandle, const char *device, const char *whitelist_file)
         BUFFER_WRITE_CHECK(")");
     }
 
-    VASQ_DEBUG("BPF: %s", bpf);
+    VASQ_DEBUG(logger, "BPF: %s", bpf);
 
     if (pcap_compile(phandle, &program, bpf, true, 0) != 0) {
         VASQ_ERROR(logger, "pcap_compile: %s", pcap_geterr(phandle));
