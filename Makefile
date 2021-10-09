@@ -30,8 +30,8 @@ _all: hamo
 
 libs: $(HAMO_SHARED_LIBRARY) $(HAMO_STATIC_LIBRARY)
 
-hamo: hallmonitor/main.o $(HAMO_STATIC_LIBRARY) $(VASQ_STATIC_LIBRARY) $(PCAP_STATIC_LIBRARY)
-	$(CC) $(CFLAGS) $(HAMO_INCLUDE_FLAGS) -o $@ $^
+hamo: hallmonitor/main.o $(HAMO_STATIC_LIBRARY) $(VASQ_STATIC_LIBRARY)
+	$(CC) $(CFLAGS) $(HAMO_INCLUDE_FLAGS) -o $@ $^ -lpcap
 
 clean: $(CLEAN_TARGETS)
 	rm -f hamo hallmonitor/main.o $(DEPS_FILES)
