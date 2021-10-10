@@ -14,7 +14,7 @@
 
 int main(int argc, char **argv) {
     int ret;
-    char *device, *whitelist_file;
+    char *device;
     hamoPcap capturer = HAMO_PCAP_INIT;
 
     if ( argc == 1 ) {
@@ -23,16 +23,13 @@ int main(int argc, char **argv) {
     }
     device = argv[1];
 
-    whitelist_file = (argc == 2)? NULL : argv[2];
-
-    ret = hamoLoggerInit(LL_USE);
-    if ( ret != VASQ_RET_OK ) {
-        return -1*ret;
+    if ( hamoLoggerInit(LL_USE) != VASQ_RET_OK ) {
+        return HAMO_RET_OUT_OF_MEMORY;
     }
 
     hamoJournalInit(HAMO_NULL_JOURNALER, NULL);
 
-    ret = hamoPcapCreate(&capturer, device, whitelist_file);
+    ret = hamoPcapCreate(&capturer, device, NULL, 0);
     if ( ret != HAMO_RET_OK ) {
         return ret;
     }

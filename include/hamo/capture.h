@@ -4,6 +4,7 @@
 #include <pcap.h>
 
 #include "definitions.h"
+#include "whitelist.h"
 
 typedef struct hamoPcap {
     pcap_t *phandle;
@@ -21,13 +22,14 @@ typedef struct hamoPcap {
  *
  * @param handle A pointer to the structure to be populated.
  * @param device The name of the network device on which to capture.  If NULL, defaults to "any".
- * @param whitelist_file If not NULL, specifies a file containing whitelist information to include in the
+ * @param entries If not NULL, a pointer to an array of whitelist entries used to form the BPF.
+ * @param num_entries The number of whitelist entries.
  * BPF.
  *
  * @return HAMO_RET_OK if successful and an error code otherwise.
  */
 int
-hamoPcapCreate(hamoPcap *handle, const char *device, const char *whitelist_file);
+hamoPcapCreate(hamoPcap *handle, const char *device, const hamoWhitelistEntry *entries, size_t num_entries);
 
 /**
  * @brief Loops, processing packets.  This function can be interrupted by sending the process a SIGINT.

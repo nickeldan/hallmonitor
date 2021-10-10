@@ -2,8 +2,8 @@
 #include <stdint.h>
 #include <string.h>
 
-#include <hamo/journal.h>
-#include <hamo/packet.h>
+#include "journal_internal.h"
+#include "packet_internal.h"
 
 #define IPV4_MIN_HEADER_SIZE     20
 #define IPV4_IHL_OFFSET          0

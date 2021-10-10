@@ -6,8 +6,9 @@
 #include <string.h>
 
 #include <hamo/capture.h>
-#include <hamo/packet.h>
 #include <hamo/whitelist.h>
+
+#include "packet_internal.h"
 
 #define HAMO_BPF_MAX_SIZE       1024
 #define HAMO_MAX_BYTES_CAPTURED 512
@@ -19,20 +20,18 @@ static volatile sig_atomic_t sigint_caught;
         len += snprintf(bpf + len, sizeof(bpf) - len, format, ##__VA_ARGS__);     \
         if (len >= sizeof(bpf)) {                                                 \
             VASQ_ERROR(logger, "BPF is too long (%zu characters at least)", len); \
-            ret = HAMO_RET_OVERFLOW;                                              \
-            goto done;                                                            \
+            return HAMO_RET_OVERFLOW;                                             \
         }                                                                         \
     } while (0)
 
 static int
-setBpf(pcap_t *phandle, const char *device, const char *whitelist_file)
+setBpf(pcap_t *phandle, const char *device, const hamoWhitelistEntry *entries, size_t num_entries)
 {
     int ret;
-    size_t len, num_entries;
+    size_t len;
     bpf_u_int32 netp, maskp;
     unsigned int mask_size;
     char errbuf[PCAP_ERRBUF_SIZE], bpf[HAMO_BPF_MAX_SIZE] = "tcp[tcpflags] & (tcp-syn) != 0";
-    hamoWhitelistEntry *entries = NULL;
     struct bpf_program program;
 
     len = strnlen(bpf, sizeof(bpf));
@@ -63,11 +62,6 @@ setBpf(pcap_t *phandle, const char *device, const char *whitelist_file)
                            mask_size);
     }
 #undef GET_BYTE
-
-    ret = hamoWhitelistLoad(whitelist_file, &entries, &num_entries);
-    if (ret != HAMO_RET_OK) {
-        return ret;
-    }
 
     for (size_t k = 0; k < num_entries; k++) {
         bool already_params = false;
@@ -110,9 +104,6 @@ setBpf(pcap_t *phandle, const char *device, const char *whitelist_file)
         BUFFER_WRITE_CHECK(")");
     }
 
-    hamoWhitelistFree(entries);
-    entries = NULL;
-
     VASQ_DEBUG(logger, "BPF: %s", bpf);
 
     if (pcap_compile(phandle, &program, bpf, true, 0) != 0) {
@@ -130,9 +121,6 @@ setBpf(pcap_t *phandle, const char *device, const char *whitelist_file)
         ret = HAMO_RET_PCAP_SET_FILTER;
     }
 
-done:
-    hamoWhitelistFree(entries);
-
     return ret;
 }
 
@@ -149,7 +137,7 @@ sigintHandler(int signum)
 }
 
 int
-hamoPcapCreate(hamoPcap *handle, const char *device, const char *whitelist_file)
+hamoPcapCreate(hamoPcap *handle, const char *device, const hamoWhitelistEntry *entries, size_t num_entries)
 {
     int ret, link_type;
     char errbuf[PCAP_ERRBUF_SIZE];
@@ -158,6 +146,10 @@ hamoPcapCreate(hamoPcap *handle, const char *device, const char *whitelist_file)
     if (!handle) {
         VASQ_ERROR(logger, "handle cannot be NULL");
         return HAMO_RET_USAGE;
+    }
+
+    if (!entries) {
+        num_entries = 0;
     }
 
     *handle = (hamoPcap){0};
@@ -177,7 +169,7 @@ hamoPcapCreate(hamoPcap *handle, const char *device, const char *whitelist_file)
     }
     VASQ_DEBUG(logger, "Data link type: %s", link_type_name);
 
-    ret = setBpf(handle->phandle, device, whitelist_file);
+    ret = setBpf(handle->phandle, device, entries, num_entries);
     if (ret != HAMO_RET_OK) {
         goto error;
     }

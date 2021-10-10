@@ -8,6 +8,8 @@
 
 //#define HAMO_IPV6_SUPPORTED
 
+#define HIDDEN_SYMBOL __attribute__((visibility("hidden")))
+
 #define IPV4_SIZE 4
 #define IPV6_SIZE 16
 

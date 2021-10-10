@@ -1,11 +1,11 @@
-#ifndef HALLMONITOR_PACKET_H
-#define HALLMONITOR_PACKET_H
+#ifndef HALLMONITOR_PACKET_INTERNAL_H
+#define HALLMONITOR_PACKET_INTERNAL_H
 
 #include <stdbool.h>
 
 #include <pcap.h>
 
-#include "definitions.h"
+#include <hamo/definitions.h>
 
 /**
  * Is a data link type supported?
@@ -14,7 +14,7 @@
  *
  * @return true if supported and false otherwise.
  */
-bool
+bool HIDDEN_SYMBOL
 hamoLinkTypeSupported(int link_type);
 
 /**
@@ -24,7 +24,7 @@ hamoLinkTypeSupported(int link_type);
  *
  * @return The number of packets handled or, if an error occurred, -1 times the error code.
  */
-int
+int HIDDEN_SYMBOL
 hamoProcessPackets(pcap_t *phandle);
 
-#endif  // HALLMONITOR_PACKET_H
+#endif  // HALLMONITOR_PACKET_INTERNAL_H

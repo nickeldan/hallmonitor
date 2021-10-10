@@ -38,14 +38,4 @@ typedef int (*hamoJournaler)(const hamoRecord *record, void *user);
 void
 hamoJournalInit(hamoJournaler journaler, void *user);
 
-/**
- * @brief Writes a packet capture record to the journal.
- *
- * @param record A pointer to the record.
- *
- * @return HAMO_RET_OK if successful and an error code otherwise.
- */
-int
-hamoJournalWrite(const hamoRecord *record);
-
 #endif  // HALLMONITOR_JOURNAL_H
