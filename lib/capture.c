@@ -13,7 +13,7 @@
 #define HAMO_BPF_MAX_SIZE       1024
 #define HAMO_MAX_BYTES_CAPTURED 512
 
-static volatile sig_atomic_t sigint_caught;
+static volatile sig_atomic_t signal_caught;
 
 #define BUFFER_WRITE_CHECK(format, ...)                                           \
     do {                                                                          \
@@ -127,13 +127,11 @@ setBpf(pcap_t *phandle, const char *device, const hamoWhitelistEntry *entries, s
 #undef BUFFER_WRITE_CHECK
 
 static void
-sigintHandler(int signum)
+signalHandler(int signum)
 {
-    (void)signum;
+    VASQ_DEBUG(logger, "SIG%s caught", (signum == SIGINT) ? "INT" : "ALRM");
 
-    VASQ_DEBUG(logger, "SIGINT caught");
-
-    sigint_caught = true;
+    signal_caught = true;
 }
 
 int
@@ -199,7 +197,7 @@ int
 hamoPcapDispatch(hamoPcap *handle, int timeout, int *num_packets)
 {
     int ret = HAMO_RET_OK;
-    struct sigaction action = {.sa_handler = sigintHandler}, old_action;
+    struct sigaction action = {.sa_handler = signalHandler}, old_int_action, old_alrm_action;
     struct pollfd poller;
 
     if (num_packets) {
@@ -216,16 +214,19 @@ hamoPcapDispatch(hamoPcap *handle, int timeout, int *num_packets)
         return HAMO_RET_USAGE;
     }
 
+    signal_caught = false;
+
     sigfillset(&action.sa_mask);
-    sigaction(SIGINT, &action, &old_action);
-    VASQ_DEBUG(logger, "SIGINT handler set");
+    sigaction(SIGINT, &action, &old_int_action);
+    sigaction(SIGALRM, &action, &old_alrm_action);
+    VASQ_DEBUG(logger, "Signal handler set");
 
     poller.fd = handle->fd;
     poller.events = POLLIN;
 
     VASQ_INFO(logger, "Beginning packet capture loop");
 
-    while (!sigint_caught) {
+    while (!signal_caught) {
         if (poll(&poller, 1, timeout) == -1) {
             int local_errno = errno;
 
@@ -260,8 +261,9 @@ hamoPcapDispatch(hamoPcap *handle, int timeout, int *num_packets)
 
 done:
 
-    sigaction(SIGINT, &old_action, NULL);
-    VASQ_DEBUG(logger, "SIGINT handler restored");
+    sigaction(SIGINT, &old_int_action, NULL);
+    sigaction(SIGALRM, &old_alrm_action, NULL);
+    VASQ_DEBUG(logger, "Signal handler restored");
 
     VASQ_INFO(logger, "Exiting packet capture loop");
 

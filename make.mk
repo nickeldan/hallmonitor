@@ -9,7 +9,7 @@ HAMO_STATIC_LIBRARY := $(HAMO_DIR)/libhallmonitor.a
 HAMO_SOURCE_FILES := $(wildcard $(HAMO_DIR)/lib/*.c)
 HAMO_OBJECT_FILES := $(patsubst %.c,%.o,$(HAMO_SOURCE_FILES))
 HAMO_HEADER_FILES := $(wildcard $(HAMO_DIR)/include/hamo/*.h)
-HAMO_EXTERNAL_HEADER_FILES := $(foreach dir,$(VASQ_INCLUDE_DIR),$(shell find $(dir) -name '*.h'))
+HAMO_EXTERNAL_HEADER_FILES := $(shell find $(VASQ_INCLUDE_DIR) -name '*.h')
 
 HAMO_DEPS_FILE := $(HAMO_DIR)/deps.mk
 DEPS_FILES += $(HAMO_DEPS_FILE)
@@ -23,7 +23,7 @@ $(HAMO_DEPS_FILE): $(HAMO_SOURCE_FILES) $(HAMO_HEADER_FILES) $(HAMO_EXTERNAL_HEA
 include $(HAMO_DEPS_FILE)
 
 $(HAMO_SHARED_LIBRARY): $(HAMO_OBJECT_FILES)
-	$(CC) -shared -lpcap -o $@ $^
+	$(CC) -shared -o $@ $^
 
 $(HAMO_STATIC_LIBRARY): $(HAMO_OBJECT_FILES)
 	$(AR) rcs $@ $^

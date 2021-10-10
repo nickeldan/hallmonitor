@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 
 #include <hamo/definitions.h>
 
@@ -13,7 +12,7 @@ loggerFree(void)
 }
 
 int
-hamoLoggerInit(vasqLogLevel_t level)
+hamoLoggerInit(int fd, vasqLogLevel_t level)
 {
     int ret;
 
@@ -23,7 +22,7 @@ hamoLoggerInit(vasqLogLevel_t level)
 #define LOGGER_FORMAT "%t [%L]%_ %M\n"
 #endif
 
-    ret = vasqLoggerCreate(STDOUT_FILENO, level, LOGGER_FORMAT, NULL, &logger);
+    ret = vasqLoggerCreate(fd, level, LOGGER_FORMAT, NULL, &logger);
     if (ret != VASQ_RET_OK) {
         fprintf(stderr, "vasqLoggerCreate: %s\n", vasqErrorString(ret));
         return ret;

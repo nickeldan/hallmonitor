@@ -34,12 +34,13 @@ enum hamoRetValue {
 /**
  * @brief Initializes the logger.
  *
+ * @param fd The descriptor to which to write the log messages.
  * @param level The maximum log level to use.
  *
  * @return VASQ_RET_OK if successful and an error code otherwise.
  */
 int
-hamoLoggerInit(vasqLogLevel_t level);
+hamoLoggerInit(int fd, vasqLogLevel_t level);
 
 extern vasqLogger *logger;
 

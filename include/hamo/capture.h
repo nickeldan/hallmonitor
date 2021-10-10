@@ -32,7 +32,8 @@ int
 hamoPcapCreate(hamoPcap *handle, const char *device, const hamoWhitelistEntry *entries, size_t num_entries);
 
 /**
- * @brief Loops, processing packets.  This function can be interrupted by sending the process a SIGINT.
+ * @brief Loops, processing packets.  This function can be interrupted by sending the process either a SIGINT
+ * or a SIGALRM.
  *
  * @param handle A pointer to the hamoPcap.
  * @param timeout The number of seconds to wait for packets to become available.  A negative value means an
