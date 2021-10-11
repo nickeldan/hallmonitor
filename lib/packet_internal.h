@@ -18,13 +18,11 @@ bool HIDDEN_SYMBOL
 hamoLinkTypeSupported(int link_type);
 
 /**
- * @brief Processes all available packets and writes them to the journal.
+ * @brief Processes at most one packet and writes it to the journal.
  *
  * @param phandle The PCAP handle to use.
- *
- * @return The number of packets handled or, if an error occurred, -1 times the error code.
  */
-int HIDDEN_SYMBOL
-hamoProcessPackets(pcap_t *phandle);
+void HIDDEN_SYMBOL
+hamoProcessPacket(pcap_t *phandle);
 
 #endif  // HALLMONITOR_PACKET_INTERNAL_H

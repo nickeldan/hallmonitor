@@ -18,7 +18,6 @@
 #define TCP_DPORT_OFFSET    2
 #define TCP_FLAGS_OFFSET    13
 #define TCP_SYN_FLAG        0x02
-#define TCP_ACK_FLAG        0x10
 
 static inline uint16_t
 fetchU16(const uint8_t *src)
@@ -99,10 +98,6 @@ parseTCPHeader(const uint8_t *header, unsigned int size, hamoRecord *record)
         return false;
     }
 
-    if (header[TCP_FLAGS_OFFSET] & TCP_ACK_FLAG) {
-        record->ack_flag = true;
-    }
-
     record->sport = fetchU16(header + TCP_SPORT_OFFSET);
     record->dport = fetchU16(header + TCP_DPORT_OFFSET);
 
@@ -113,7 +108,7 @@ static void
 parsePacket(u_char *user, const struct pcap_pkthdr *header, const u_char *data)
 {
     unsigned int size = header->caplen, so_far;
-    int link_type = *(int *)user;
+    int link_type = (intptr_t)user;
     hamoRecord record = {0};
 
     VASQ_DEBUG(logger, "Captured %u bytes of a %u-byte packet", size, header->len);
@@ -155,6 +150,8 @@ parsePacket(u_char *user, const struct pcap_pkthdr *header, const u_char *data)
         return;
     }
 
+    record.timestamp = header->ts;
+
     hamoJournalWrite(&record);
 }
 
@@ -170,26 +167,19 @@ hamoLinkTypeSupported(int link_type)
     }
 }
 
-int
-hamoProcessPackets(pcap_t *phandle)
+void
+hamoProcessPacket(pcap_t *phandle)
 {
-    int ret, link_type;
+    int link_type;
 
     if (!phandle) {
         VASQ_ERROR(logger, "phandle cannot be NULL");
-        return HAMO_RET_USAGE;
+        return;
     }
 
     link_type = pcap_datalink(phandle);
 
-    ret = pcap_dispatch(phandle, -1, (pcap_handler)parsePacket, (u_char *)&link_type);
-    if (ret == PCAP_ERROR_BREAK) {
-        ret = 0;
-    }
-    else if (ret == PCAP_ERROR) {
+    if (pcap_dispatch(phandle, 1, (pcap_handler)parsePacket, (u_char *)(intptr_t)link_type) == PCAP_ERROR) {
         VASQ_ERROR(logger, "pcap_dispatch: %s", pcap_geterr(phandle));
-        ret = -1;
     }
-
-    return ret;
 }

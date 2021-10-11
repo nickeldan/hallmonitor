@@ -8,13 +8,12 @@
 
 typedef struct hamoPcap {
     pcap_t *phandle;
-    int fd;
 } hamoPcap;
 
-#define HAMO_PCAP_INIT            \
-    (hamoPcap)                    \
-    {                             \
-        .phandle = NULL, .fd = -1 \
+#define HAMO_PCAP_INIT  \
+    (hamoPcap)          \
+    {                   \
+        .phandle = NULL \
     }
 
 /**
@@ -32,19 +31,17 @@ int
 hamoPcapCreate(hamoPcap *handle, const char *device, const hamoWhitelistEntry *entries, size_t num_entries);
 
 /**
- * @brief Loops, processing packets.  This function can be interrupted by sending the process either a SIGINT
- * or a SIGALRM.
+ * @brief Checks an array of packet capturing handles, processing at most one packet from each one.
  *
- * @param handle A pointer to the hamoPcap.
+ * @param handles An array of handles.
+ * @param num_handles The length of the array.
  * @param timeout The number of seconds to wait for packets to become available.  A negative value means an
  * infinite timeout.
- * @param num_packets If not NULL, then its referenced integer will be set to the number of packets
- * successfully processed.
  *
  * @return HAMO_RET_OK if sucessful and an error code otherwise.
  */
 int
-hamoPcapDispatch(hamoPcap *handle, int timeout, int *num_packets);
+hamoPcapDispatch(const hamoPcap *handles, size_t num_handles, int timeout);
 
 /**
  * @brief Frees any resources associated with a hamoPcap.

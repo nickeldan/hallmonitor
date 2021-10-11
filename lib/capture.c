@@ -1,9 +1,10 @@
+#include <alloca.h>
 #include <arpa/inet.h>
 #include <errno.h>
 #include <poll.h>
-#include <signal.h>
 #include <stdbool.h>
 #include <string.h>
+#include <unistd.h>
 
 #include <hamo/capture.h>
 #include <hamo/whitelist.h>
@@ -12,8 +13,6 @@
 
 #define HAMO_BPF_MAX_SIZE       1024
 #define HAMO_MAX_BYTES_CAPTURED 512
-
-static volatile sig_atomic_t signal_caught;
 
 #define BUFFER_WRITE_CHECK(format, ...)                                           \
     do {                                                                          \
@@ -31,7 +30,7 @@ setBpf(pcap_t *phandle, const char *device, const hamoWhitelistEntry *entries, s
     size_t len;
     bpf_u_int32 netp, maskp;
     unsigned int mask_size;
-    char errbuf[PCAP_ERRBUF_SIZE], bpf[HAMO_BPF_MAX_SIZE] = "tcp[tcpflags] & (tcp-syn) != 0";
+    char errbuf[PCAP_ERRBUF_SIZE], bpf[HAMO_BPF_MAX_SIZE] = "tcp[tcpflags] & (tcp-syn|tcp-ack) == tcp-syn";
     struct bpf_program program;
 
     len = strnlen(bpf, sizeof(bpf));
@@ -126,14 +125,6 @@ setBpf(pcap_t *phandle, const char *device, const hamoWhitelistEntry *entries, s
 
 #undef BUFFER_WRITE_CHECK
 
-static void
-signalHandler(int signum)
-{
-    VASQ_DEBUG(logger, "SIG%s caught", (signum == SIGINT) ? "INT" : "ALRM");
-
-    signal_caught = true;
-}
-
 int
 hamoPcapCreate(hamoPcap *handle, const char *device, const hamoWhitelistEntry *entries, size_t num_entries)
 {
@@ -150,7 +141,7 @@ hamoPcapCreate(hamoPcap *handle, const char *device, const hamoWhitelistEntry *e
         num_entries = 0;
     }
 
-    *handle = (hamoPcap){0};
+    VASQ_INFO(logger, "Creating a packet capture handle for the %s device", device);
 
     handle->phandle = pcap_open_live(device, HAMO_MAX_BYTES_CAPTURED, true, 1000, errbuf);
     if (!handle->phandle) {
@@ -172,8 +163,7 @@ hamoPcapCreate(hamoPcap *handle, const char *device, const hamoWhitelistEntry *e
         goto error;
     }
 
-    handle->fd = pcap_get_selectable_fd(handle->phandle);
-    if (handle->fd == PCAP_ERROR) {
+    if (pcap_get_selectable_fd(handle->phandle) == PCAP_ERROR) {
         VASQ_ERROR(logger, "No selectable file descriptor associated with PCAP handle");
         ret = HAMO_RET_PCAP_NO_FD;
         goto error;
@@ -194,80 +184,59 @@ error:
 }
 
 int
-hamoPcapDispatch(hamoPcap *handle, int timeout, int *num_packets)
+hamoPcapDispatch(const hamoPcap *handles, size_t num_handles, int timeout)
 {
     int ret = HAMO_RET_OK;
-    struct sigaction action = {.sa_handler = signalHandler}, old_int_action, old_alrm_action;
-    struct pollfd poller;
+    struct pollfd *pollers;
 
-    if (num_packets) {
-        *num_packets = 0;
-    }
-
-    if (!handle) {
+    if (!handles) {
         VASQ_ERROR(logger, "handle cannot be NULL");
         return HAMO_RET_USAGE;
     }
 
-    if (!handle->phandle || handle->fd < 0) {
-        VASQ_ERROR(logger, "handle is uninitialized");
-        return HAMO_RET_USAGE;
+    if (num_handles == 0) {
+        return HAMO_RET_OK;
     }
 
-    signal_caught = false;
-
-    sigfillset(&action.sa_mask);
-    sigaction(SIGINT, &action, &old_int_action);
-    sigaction(SIGALRM, &action, &old_alrm_action);
-    VASQ_DEBUG(logger, "Signal handler set");
-
-    poller.fd = handle->fd;
-    poller.events = POLLIN;
-
-    VASQ_INFO(logger, "Beginning packet capture loop");
-
-    while (!signal_caught) {
-        if (poll(&poller, 1, timeout) == -1) {
-            int local_errno = errno;
-
-            if (local_errno == EINTR) {
-                VASQ_DEBUG(logger, "poll interrupted by a signal");
-                continue;
-            }
-            else {
-                VASQ_PERROR(logger, "poll", local_errno);
-                ret = HAMO_RET_POLL_FAILED;
-                goto done;
-            }
-        }
-
-        if (poller.revents & POLLIN) {
-            int processed;
-
-            processed = hamoProcessPackets(handle->phandle);
-            if (processed < 0) {
-                ret = HAMO_RET_PCAP_DISPATCH;
-                goto done;
-            }
-
-            if (num_packets) {
-                *num_packets += processed;
-            }
+    pollers = alloca(sizeof(*pollers) * num_handles);
+    for (size_t k = 0; k < num_handles; k++) {
+        if (handles[k].phandle) {
+            pollers[k].fd = pcap_get_selectable_fd(handles[k].phandle);
+            pollers[k].events = POLLIN;
         }
         else {
-            break;
+            pollers[k].fd = STDOUT_FILENO;  // A descriptor that will never be ready for reading.
+            pollers[k].events = 0;
         }
     }
 
-done:
+    switch (poll(pollers, num_handles, timeout)) {
+        int local_errno;
 
-    sigaction(SIGINT, &old_int_action, NULL);
-    sigaction(SIGALRM, &old_alrm_action, NULL);
-    VASQ_DEBUG(logger, "Signal handler restored");
+    case -1:
+        local_errno = errno;
+        if (local_errno == EINTR) {
+            VASQ_WARNING(logger, "poll interrupted by a signal");
+            return HAMO_RET_OK;
+        }
+        else {
+            VASQ_PERROR(logger, "poll", local_errno);
+            return HAMO_RET_POLL_FAILED;
+        }
 
-    VASQ_INFO(logger, "Exiting packet capture loop");
+    case 0: break;
 
-    return ret;
+    default:
+        for (size_t k = 0; k < num_handles; k++) {
+            if (pollers[k].revents & POLLIN) {
+                VASQ_DEBUG(logger, "Handler %zu is ready for reading\n");
+                hamoProcessPacket(handles[k].phandle);
+            }
+        }
+        break;
+    }
+
+    return HAMO_RET_OK;
 }
 
 void
