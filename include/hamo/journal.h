@@ -28,7 +28,7 @@ typedef int (*hamoJournaler)(const hamoRecord *record, void *user);
 /**
  * @brief Passing this function to hamoJournalInit will cause nothing to happen when a record is written.
  */
-#define HAMO_NULL_JOURNALER (hamoJournaler) NULL
+#define HAMO_NULL_JOURNALER NULL
 
 /**
  * @brief Initializes journaling.

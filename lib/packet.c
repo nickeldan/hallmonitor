@@ -179,7 +179,7 @@ hamoProcessPacket(pcap_t *phandle)
 
     link_type = pcap_datalink(phandle);
 
-    if (pcap_dispatch(phandle, 1, (pcap_handler)parsePacket, (u_char *)(intptr_t)link_type) == PCAP_ERROR) {
+    if (pcap_dispatch(phandle, 1, parsePacket, (u_char *)(intptr_t)link_type) == PCAP_ERROR) {
         VASQ_ERROR(logger, "pcap_dispatch: %s", pcap_geterr(phandle));
     }
 }
