@@ -37,8 +37,7 @@ main(int argc, char **argv)
         return ret;
     }
 
-    while ( (ret=hamoPcapDispatch(&capturer, 1, -1)) == HAMO_RET_OK) {
-    }
+    while ((ret = hamoPcapDispatch(&capturer, 1, -1)) == HAMO_RET_OK) {}
 
     hamoPcapClose(&capturer);
     return ret;

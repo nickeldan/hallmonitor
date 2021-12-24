@@ -229,7 +229,7 @@ hamoPcapDispatch(const hamoPcap *handles, size_t num_handles, int timeout)
     default:
         for (size_t k = 0; k < num_handles; k++) {
             if (pollers[k].revents & POLLIN) {
-                VASQ_DEBUG(logger, "Handler %zu is ready for reading\n");
+                VASQ_DEBUG(logger, "Handler %zu is ready for reading", k);
                 hamoProcessPacket(handles[k].phandle);
             }
         }
