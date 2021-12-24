@@ -1,7 +1,3 @@
-#include <arpa/inet.h>
-#include <stdio.h>
-#include <sys/socket.h>
-
 #include <hamo/journal.h>
 
 static int

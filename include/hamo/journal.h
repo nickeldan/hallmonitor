@@ -29,9 +29,9 @@ typedef int (*hamoJournaler)(const hamoRecord *record, void *user);
 /**
  * @brief Initializes journaling.
  *
- * @param journaler The journaling function to use.
- * @param user A pointer which will be passed to the journaler when called.  If NULL, then a journaler which
-    does nothing will be used.
+ * @param journaler The journaling function to use.  If NULL, then a journaler which does nothing will be
+    used.
+ * @param user A pointer which will be passed to the journaler when called.
  */
 void
 hamoJournalInit(hamoJournaler journaler, void *user);
