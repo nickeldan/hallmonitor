@@ -97,6 +97,7 @@ parseTCPHeader(const uint8_t *header, unsigned int size, hamoRecord *record)
         VASQ_ERROR(logger, "We've somehow captured a non-SYN TCP packet despite our BPF");
         return false;
     }
+    record->tcp_flags = header[TCP_FLAGS_OFFSET];
 
     record->sport = fetchU16(header + TCP_SPORT_OFFSET);
     record->dport = fetchU16(header + TCP_DPORT_OFFSET);

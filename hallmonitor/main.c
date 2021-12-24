@@ -13,6 +13,33 @@
 #endif
 #endif
 
+#define TCP_ACK_FLAG 0x10
+
+static int
+printRecord(const hamoRecord *record, void *user)
+{
+    (void)user;
+    int af = record->ipv6 ? AF_INET6 : AF_INET;
+    char src_buffer[INET6_ADDRSTRLEN], dst_buffer[INET6_ADDRSTRLEN];
+    const char *packet_type;
+
+    inet_ntop(af, &record->source_address, src_buffer, sizeof(src_buffer));
+    inet_ntop(af, &record->destination_address, dst_buffer, sizeof(src_buffer));
+
+    packet_type = (record->tcp_flags & TCP_ACK_FLAG) ? "SYN-ACK" : "SYN";
+
+    if (record->ipv6) {
+        VASQ_INFO(logger, "%s packet sent from [%s]:%u to [%s]:%u", packet_type, src_buffer, record->sport,
+                  dst_buffer, record->dport);
+    }
+    else {
+        VASQ_INFO(logger, "%s packet sent from %s:%u to %s:%u", packet_type, src_buffer, record->sport,
+                  dst_buffer, record->dport);
+    }
+
+    return HAMO_RET_OK;
+}
+
 int
 main(int argc, char **argv)
 {
@@ -30,7 +57,7 @@ main(int argc, char **argv)
         return HAMO_RET_OUT_OF_MEMORY;
     }
 
-    hamoJournalInit(HAMO_NULL_JOURNALER, NULL);
+    hamoJournalInit(printRecord, NULL);
 
     ret = hamoPcapCreate(&capturer, device, NULL, 0);
     if (ret != HAMO_RET_OK) {

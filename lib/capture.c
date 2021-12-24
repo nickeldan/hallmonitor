@@ -30,7 +30,7 @@ setBpf(pcap_t *phandle, const char *device, const hamoWhitelistEntry *entries, s
     size_t len;
     bpf_u_int32 netp, maskp;
     unsigned int mask_size;
-    char errbuf[PCAP_ERRBUF_SIZE], bpf[HAMO_BPF_MAX_SIZE] = "tcp[tcpflags] & (tcp-syn|tcp-ack) == tcp-syn";
+    char errbuf[PCAP_ERRBUF_SIZE], bpf[HAMO_BPF_MAX_SIZE] = "tcp[tcpflags] & (tcp-syn) != 0";
     struct bpf_program program;
 
     len = strnlen(bpf, sizeof(bpf));
@@ -186,7 +186,6 @@ error:
 int
 hamoPcapDispatch(const hamoPcap *handles, size_t num_handles, int timeout)
 {
-    int ret = HAMO_RET_OK;
     struct pollfd *pollers;
 
     if (!handles) {

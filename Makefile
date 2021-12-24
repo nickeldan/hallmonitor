@@ -34,4 +34,4 @@ hamo: hallmonitor/main.o $(HAMO_STATIC_LIBRARY) $(VASQ_STATIC_LIBRARY)
 	$(CC) $(CFLAGS) $(HAMO_INCLUDE_FLAGS) -o $@ $^ -lpcap
 
 clean: $(CLEAN_TARGETS)
-	rm -f hamo hallmonitor/main.o $(DEPS_FILES)
+	@rm -f hamo hallmonitor/main.o $(DEPS_FILES)
