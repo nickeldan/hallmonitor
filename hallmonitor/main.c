@@ -59,6 +59,8 @@ main(int argc, char **argv)
         return HAMO_RET_OUT_OF_MEMORY;
     }
 
+    VASQ_LOGGER(logger, "Running Hallmonitor %s", HAMO_VERSION);
+
     hamoJournalInit(printRecord, NULL);
 
     ret = hamoPcapCreate(&capturer, device, NULL, 0);
