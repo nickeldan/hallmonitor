@@ -18,11 +18,15 @@ include make.mk
 MAIN_DEPS_FILE := main_deps.mk
 DEPS_FILES += $(MAIN_DEPS_FILE)
 
+ifneq ($(MAKECMDGOALS),clean)
+
 $(MAIN_DEPS_FILE): hallmonitor/main.c $(HAMO_HEADER_FILES) $(HAMO_EXTERNAL_HEADER_FILES)
 	rm -f $@
 	echo "hallmonitor/`$(CC) $(HAMO_INCLUDE_FLAGS) -MM $<`" >> $@
 	echo '\t$$(CC) $$(CFLAGS) -fpic -ffunction-sections $(HAMO_INCLUDE_FLAGS) -c $$< -o $$@' >> $@
 include $(MAIN_DEPS_FILE)
+
+endif
 
 .PHONY: all _all libs clean $(CLEAN_TARGETS)
 
