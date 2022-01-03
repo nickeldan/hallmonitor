@@ -23,12 +23,11 @@ hamoLoggerInit(int fd, vasqLogLevel_t level)
 #endif
 
     ret = vasqLoggerCreate(fd, level, LOGGER_FORMAT, NULL, &logger);
-    if (ret != VASQ_RET_OK) {
-        fprintf(stderr, "vasqLoggerCreate: %s\n", vasqErrorString(ret));
-        return ret;
+    if (ret == VASQ_RET_OK) {
+        atexit(loggerFree);
     }
-
-    atexit(loggerFree);
-
-    return VASQ_RET_OK;
+    else {
+        fprintf(stderr, "vasqLoggerCreate: %s\n", vasqErrorString(ret));
+    }
+    return ret;
 }

@@ -2,7 +2,8 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "journal_internal.h"
+#include <hamo/journal.h>
+
 #include "packet_internal.h"
 
 #define IPV4_MIN_HEADER_SIZE     20
@@ -18,6 +19,11 @@
 #define TCP_DPORT_OFFSET    2
 #define TCP_FLAGS_OFFSET    13
 #define TCP_SYN_FLAG        0x02
+
+struct parseCtx {
+    const hamoArray *journalers;
+    int link_type;
+};
 
 static inline uint16_t
 fetchU16(const uint8_t *src)
@@ -109,13 +115,14 @@ static void
 parsePacket(u_char *user, const struct pcap_pkthdr *header, const u_char *data)
 {
     unsigned int size = header->caplen, so_far;
-    int link_type = (intptr_t)user;
+    const struct parseCtx *ctx = (const struct parseCtx *)user;
     hamoRecord record = {0};
+    void *item;
 
     VASQ_DEBUG(logger, "Captured %u bytes of a %u-byte packet", size, header->len);
     VASQ_HEXDUMP(logger, "Packet", data, size);
 
-    so_far = determineLinkLayerSize(link_type, data, size);
+    so_far = determineLinkLayerSize(ctx->link_type, data, size);
     if (so_far == (unsigned int)-1) {
         return;
     }
@@ -153,7 +160,12 @@ parsePacket(u_char *user, const struct pcap_pkthdr *header, const u_char *data)
 
     record.timestamp = header->ts;
 
-    hamoJournalWrite(&record);
+    ARRAY_FOR_EACH(ctx->journalers, item)
+    {
+        const hamoJournaler *journaler = item;
+
+        journaler->func(journaler->user, &record);
+    }
 }
 
 bool
@@ -169,18 +181,14 @@ hamoLinkTypeSupported(int link_type)
 }
 
 void
-hamoProcessPacket(pcap_t *phandle)
+hamoProcessPacket(pcap_t *handle, const hamoArray *journalers)
 {
-    int link_type;
+    struct parseCtx ctx;
 
-    if (!phandle) {
-        VASQ_ERROR(logger, "phandle cannot be NULL");
-        return;
-    }
+    ctx.link_type = pcap_datalink(handle);
+    ctx.journalers = journalers;
 
-    link_type = pcap_datalink(phandle);
-
-    if (pcap_dispatch(phandle, 1, parsePacket, (u_char *)(intptr_t)link_type) == PCAP_ERROR) {
-        VASQ_ERROR(logger, "pcap_dispatch: %s", pcap_geterr(phandle));
+    if (pcap_dispatch(handle, 1, parsePacket, (u_char *)&ctx) == PCAP_ERROR) {
+        VASQ_ERROR(logger, "pcap_dispatch: %s", pcap_geterr(handle));
     }
 }

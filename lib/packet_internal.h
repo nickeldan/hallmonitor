@@ -5,6 +5,7 @@
 
 #include <pcap.h>
 
+#include <hamo/array.h>
 #include <hamo/definitions.h>
 
 /**
@@ -20,9 +21,10 @@ hamoLinkTypeSupported(int link_type);
 /**
  * @brief Processes at most one packet and writes it to the journal.
  *
- * @param phandle The PCAP handle to use.
+ * @param handle The PCAP handle to use.
+ * @param journalers An array of hamoJournalers (see hamo/journal.h)  to apply to any captured packets.
  */
 void HIDDEN_SYMBOL
-hamoProcessPacket(pcap_t *phandle);
+hamoProcessPacket(pcap_t *handle, const hamoArray *journalers);
 
 #endif  // HALLMONITOR_PACKET_INTERNAL_H

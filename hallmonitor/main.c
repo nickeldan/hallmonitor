@@ -17,8 +17,8 @@
 
 #define TCP_ACK_FLAG 0x10
 
-static int
-printRecord(const hamoRecord *record, void *user)
+static void
+printRecord(void *user, const hamoRecord *record)
 {
     (void)user;
     int af = record->ipv6 ? AF_INET6 : AF_INET;
@@ -38,8 +38,6 @@ printRecord(const hamoRecord *record, void *user)
         VASQ_INFO(logger, "%s packet sent from %s:%u to %s:%u", packet_type, src_buffer, record->sport,
                   dst_buffer, record->dport);
     }
-
-    return HAMO_RET_OK;
 }
 
 int
@@ -47,7 +45,8 @@ main(int argc, char **argv)
 {
     int ret;
     char *device;
-    hamoPcap capturer = HAMO_PCAP_INIT;
+    hamoDispatcher dispatcher = HAMO_DISPATCHER_INIT;
+    hamoJournaler journaler = {.func = printRecord, .user = NULL};
 
     if (argc < 2) {
         fprintf(stderr, "Missing device name\n");
@@ -61,15 +60,20 @@ main(int argc, char **argv)
 
     VASQ_INFO(logger, "Running Hallmonitor %s", HAMO_VERSION);
 
-    hamoJournalInit(printRecord, NULL);
-
-    ret = hamoPcapCreate(&capturer, device, NULL, 0);
+    ret = hamoArrayAppend(&dispatcher.journalers, &journaler);
     if (ret != HAMO_RET_OK) {
-        return ret;
+        goto done;
     }
 
-    while ((ret = hamoPcapDispatch(&capturer, 1, -1)) == HAMO_RET_OK) {}
+    ret = hamoPcapAdd(&dispatcher.handles, device, NULL);
+    if (ret != HAMO_RET_OK) {
+        goto done;
+    }
 
-    hamoPcapClose(&capturer);
+    while ((ret = hamoPcapDispatch(&dispatcher, -1)) == HAMO_RET_OK) {}
+
+done:
+    hamoDispatcherFree(&dispatcher);
+
     return ret;
 }

@@ -4,7 +4,7 @@
 #include <vasq/logger.h>
 #include <vasq/placeholder.h>
 
-#define HAMO_VERSION "0.0.2"
+#define HAMO_VERSION "0.1.0"
 
 //#define HAMO_IPV6_SUPPORTED
 

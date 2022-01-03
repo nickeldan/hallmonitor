@@ -24,7 +24,7 @@
     } while (0)
 
 static int
-setBpf(pcap_t *phandle, const char *device, const hamoWhitelistEntry *entries, size_t num_entries)
+setBpf(pcap_t *handle, const char *device, const hamoArray *whitelist)
 {
     int ret;
     size_t len;
@@ -62,61 +62,66 @@ setBpf(pcap_t *phandle, const char *device, const hamoWhitelistEntry *entries, s
     }
 #undef GET_BYTE
 
-    for (size_t k = 0; k < num_entries; k++) {
-        bool already_params = false;
+    if (whitelist) {
+        void *item;
+
+        ARRAY_FOR_EACH(whitelist, item)
+        {
+            const hamoWhitelistEntry *entry = item;
+            bool already_params = false;
 
 #ifndef HAMO_IPV6_SUPPORTED
-        if (entries[k].ipv6) {
-            VASQ_WARNING(logger,
-                         "Skipping whitelist entry %zu because IPv6 addresses are not currently supported",
-                         k);
-            continue;
-        }
+            if (entry->ipv6) {
+                VASQ_WARNING(logger,
+                             "Skipping whitelist entry because IPv6 addresses are not currently supported");
+                continue;
+            }
 #endif
 
-        BUFFER_WRITE_CHECK(" and not (");
+            BUFFER_WRITE_CHECK(" and not (");
 
-        if (entries[k].saddr) {
-            BUFFER_WRITE_CHECK("src host %s", entries[k].saddr);
-            already_params = true;
-        }
-
-        if (entries[k].dstaddr) {
-            if (already_params) {
-                BUFFER_WRITE_CHECK(" and ");
-            }
-            else {
+            if (entry->saddr) {
+                BUFFER_WRITE_CHECK("src host %s", entry->saddr);
                 already_params = true;
             }
 
-            BUFFER_WRITE_CHECK("dst host %s", entries[k].saddr);
-        }
+            if (entry->dstaddr) {
+                if (already_params) {
+                    BUFFER_WRITE_CHECK(" and ");
+                }
+                else {
+                    already_params = true;
+                }
 
-        if (entries[k].dport != 0) {
-            if (already_params) {
-                BUFFER_WRITE_CHECK(" and ");
+                BUFFER_WRITE_CHECK("dst host %s", entry->saddr);
             }
 
-            BUFFER_WRITE_CHECK("dst port %u", entries[k].dport);
-        }
+            if (entry->dport != 0) {
+                if (already_params) {
+                    BUFFER_WRITE_CHECK(" and ");
+                }
 
-        BUFFER_WRITE_CHECK(")");
+                BUFFER_WRITE_CHECK("dst port %u", entry->dport);
+            }
+
+            BUFFER_WRITE_CHECK(")");
+        }
     }
 
     VASQ_DEBUG(logger, "BPF: %s", bpf);
 
-    if (pcap_compile(phandle, &program, bpf, true, 0) != 0) {
-        VASQ_ERROR(logger, "pcap_compile: %s", pcap_geterr(phandle));
+    if (pcap_compile(handle, &program, bpf, true, 0) != 0) {
+        VASQ_ERROR(logger, "pcap_compile: %s", pcap_geterr(handle));
         return HAMO_RET_PCAP_COMPILE;
     }
 
-    ret = pcap_setfilter(phandle, &program);
+    ret = pcap_setfilter(handle, &program);
     pcap_freecode(&program);
     if (ret == 0) {
         ret = HAMO_RET_OK;
     }
     else {
-        VASQ_ERROR(logger, "pcap_setfilter: %s", pcap_geterr(phandle));
+        VASQ_ERROR(logger, "pcap_setfilter: %s", pcap_geterr(handle));
         ret = HAMO_RET_PCAP_SET_FILTER;
     }
 
@@ -125,31 +130,48 @@ setBpf(pcap_t *phandle, const char *device, const hamoWhitelistEntry *entries, s
 
 #undef BUFFER_WRITE_CHECK
 
+void
+hamoDispatcherFree(hamoDispatcher *dispatcher)
+{
+    void *item;
+
+    if (!dispatcher) {
+        return;
+    }
+
+    ARRAY_FOR_EACH(&dispatcher->handles, item)
+    {
+        pcap_t *handle = *(pcap_t **)item;
+
+        pcap_close(handle);
+    }
+
+    hamoArrayFree(&dispatcher->handles);
+    hamoArrayFree(&dispatcher->journalers);
+}
+
 int
-hamoPcapCreate(hamoPcap *handle, const char *device, const hamoWhitelistEntry *entries, size_t num_entries)
+hamoPcapAdd(hamoArray *handles, const char *device, const hamoArray *whitelist)
 {
     int ret, link_type;
     char errbuf[PCAP_ERRBUF_SIZE];
     const char *link_type_name;
+    pcap_t *handle;
 
-    if (!handle) {
-        VASQ_ERROR(logger, "handle cannot be NULL");
+    if (!handles || !device) {
+        VASQ_ERROR(logger, "handles and device cannot be NULL");
         return HAMO_RET_USAGE;
-    }
-
-    if (!entries) {
-        num_entries = 0;
     }
 
     VASQ_INFO(logger, "Creating a packet capture handle for the %s device", device);
 
-    handle->phandle = pcap_open_live(device, HAMO_MAX_BYTES_CAPTURED, true, 1000, errbuf);
-    if (!handle->phandle) {
+    handle = pcap_open_live(device, HAMO_MAX_BYTES_CAPTURED, true, 1000, errbuf);
+    if (!handle) {
         VASQ_ERROR(logger, "pcap_open_live: %s", errbuf);
         return HAMO_RET_PCAP_OPEN;
     }
 
-    link_type = pcap_datalink(handle->phandle);
+    link_type = pcap_datalink(handle);
     link_type_name = pcap_datalink_val_to_name(link_type);
     if (!hamoLinkTypeSupported(link_type)) {
         VASQ_ERROR(logger, "Unsupported data link type: %s", link_type_name);
@@ -158,20 +180,25 @@ hamoPcapCreate(hamoPcap *handle, const char *device, const hamoWhitelistEntry *e
     }
     VASQ_DEBUG(logger, "Data link type: %s", link_type_name);
 
-    ret = setBpf(handle->phandle, device, entries, num_entries);
+    ret = setBpf(handle, device, whitelist);
     if (ret != HAMO_RET_OK) {
         goto error;
     }
 
-    if (pcap_get_selectable_fd(handle->phandle) == PCAP_ERROR) {
+    if (pcap_get_selectable_fd(handle) == PCAP_ERROR) {
         VASQ_ERROR(logger, "No selectable file descriptor associated with PCAP handle");
         ret = HAMO_RET_PCAP_NO_FD;
         goto error;
     }
 
-    if (pcap_setnonblock(handle->phandle, true, errbuf) != 0) {
+    if (pcap_setnonblock(handle, true, errbuf) != 0) {
         VASQ_ERROR(logger, "pcap_setnonblock: %s", errbuf);
         ret = HAMO_RET_PCAP_SET_NONBLOCK;
+        goto error;
+    }
+
+    ret = hamoArrayAppend(handles, &handle);
+    if (ret != HAMO_RET_OK) {
         goto error;
     }
 
@@ -179,37 +206,38 @@ hamoPcapCreate(hamoPcap *handle, const char *device, const hamoWhitelistEntry *e
 
 error:
 
-    hamoPcapClose(handle);
+    pcap_close(handle);
     return ret;
 }
 
 int
-hamoPcapDispatch(const hamoPcap *handles, size_t num_handles, int timeout)
+hamoPcapDispatch(const hamoDispatcher *dispatcher, int timeout)
 {
+    size_t idx;
     struct pollfd *pollers;
+    void *item;
 
-    if (!handles) {
-        VASQ_ERROR(logger, "handle cannot be NULL");
+    if (!dispatcher) {
+        VASQ_ERROR(logger, "dispatcher cannot be NULL");
         return HAMO_RET_USAGE;
     }
 
-    if (num_handles == 0) {
+    if (dispatcher->handles.length == 0) {
         return HAMO_RET_OK;
     }
 
-    pollers = alloca(sizeof(*pollers) * num_handles);
-    for (size_t k = 0; k < num_handles; k++) {
-        if (handles[k].phandle) {
-            pollers[k].fd = pcap_get_selectable_fd(handles[k].phandle);
-            pollers[k].events = POLLIN;
-        }
-        else {
-            pollers[k].fd = STDOUT_FILENO;  // A descriptor that will never be ready for reading.
-            pollers[k].events = 0;
-        }
+    pollers = alloca(sizeof(*pollers) * dispatcher->handles.length);
+    idx = 0;
+    ARRAY_FOR_EACH(&dispatcher->handles, item)
+    {
+        pcap_t *handle = *(pcap_t **)item;
+
+        pollers[idx].fd = pcap_get_selectable_fd(handle);
+        pollers[idx].events = POLLIN;
+        idx++;
     }
 
-    switch (poll(pollers, num_handles, timeout)) {
+    switch (poll(pollers, dispatcher->handles.length, timeout)) {
         int local_errno;
 
     case -1:
@@ -226,23 +254,16 @@ hamoPcapDispatch(const hamoPcap *handles, size_t num_handles, int timeout)
     case 0: break;
 
     default:
-        for (size_t k = 0; k < num_handles; k++) {
+        for (size_t k = 0; k < dispatcher->handles.length; k++) {
             if (pollers[k].revents & POLLIN) {
-                VASQ_DEBUG(logger, "Handler %zu is ready for reading", k);
-                hamoProcessPacket(handles[k].phandle);
+                pcap_t *handle = *(pcap_t **)ARRAY_GET_ITEM(&dispatcher->handles, k);
+
+                VASQ_DEBUG(logger, "Handle %zu is ready for reading", k);
+                hamoProcessPacket(handle, &dispatcher->journalers);
             }
         }
         break;
     }
 
     return HAMO_RET_OK;
-}
-
-void
-hamoPcapClose(hamoPcap *handle)
-{
-    if (handle) {
-        pcap_close(handle->phandle);
-        *handle = HAMO_PCAP_INIT;
-    }
 }
