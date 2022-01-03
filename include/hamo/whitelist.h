@@ -2,13 +2,14 @@
 #define HALLMONITOR_WHITELIST_H
 
 #include <stdint.h>
-#include <sys/types.h>
+#include <stdio.h>
 
+#include "array.h"
 #include "definitions.h"
 
 typedef struct hamoWhitelistEntry {
-    const char *saddr;
-    const char *dstaddr;
+    char *saddr;
+    char *daddr;
     uint16_t dport;
     unsigned int ipv6 : 1;
 } hamoWhitelistEntry;
@@ -16,17 +17,21 @@ typedef struct hamoWhitelistEntry {
 /**
  * @brief Initializes the whitelist from a file.
  *
- * @param filename The path to the file containing the whitelist information.  If NULL, then an empty list
- * will be created.
- * @param entries A pointer to a entry array to be allocated.
- * @param num_entries A pointer to number of entries.  Will be set by this function.
+ * @param file A file handle opened for reading.
+ * @param entries A pointer to an array of hamoWhitelistEntries.  The entries read from the file will be
+ *                appended to the array.
  *
  * @return HAMO_RET_OK if successful and an error code otherwise.
  */
 int
-hamoWhitelistLoad(const char *filename, hamoWhitelistEntry **entries, size_t *num_entries);
+hamoWhitelistLoad(FILE *file, hamoArray *entries);
 
+/**
+ * @brief Frees whitelist entries contained in an array.
+ *
+ * @param entries A pointer to the array.
+ */
 void
-hamoWhitelistFree(hamoWhitelistEntry *entries);
+hamoWhitelistFree(hamoArray *entries);
 
 #endif  // HALLMONITOR_WHITELIST_H

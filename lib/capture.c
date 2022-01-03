@@ -85,7 +85,7 @@ setBpf(pcap_t *handle, const char *device, const hamoArray *whitelist)
                 already_params = true;
             }
 
-            if (entry->dstaddr) {
+            if (entry->daddr) {
                 if (already_params) {
                     BUFFER_WRITE_CHECK(" and ");
                 }
