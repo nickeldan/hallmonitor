@@ -20,7 +20,7 @@ parseAddress(char **addr, const char *string, size_t length)
 
     af = strchr(*addr, ':') ? AF_INET6 : AF_INET;
     if (inet_pton(af, *addr, buffer) != 1) {
-        VASQ_ERROR(logger, "Invalid IP%s address: %s", (af == AF_INET) ? "" : "v6", *addr);
+        VASQ_ERROR(logger, "Invalid IPv%s address: %s", (af == AF_INET) ? "4" : "6", *addr);
         free(*addr);
         *addr = NULL;
         return HAMO_RET_BAD_WHITELIST;
@@ -60,7 +60,7 @@ hamoWhitelistLoad(FILE *file, hamoArray *entries)
 
         comma = strchr(traverse, ',');
         if (!comma) {
-            VASQ_ERROR(logger, "Invalid whitelist entry:\n\n\t%s", line);
+            VASQ_ERROR(logger, "Invalid whitelist entry: %s", line);
             ret = HAMO_RET_BAD_WHITELIST;
             goto error;
         }
@@ -76,7 +76,7 @@ hamoWhitelistLoad(FILE *file, hamoArray *entries)
 
         comma = strchr(traverse, ',');
         if (!comma) {
-            VASQ_ERROR(logger, "Invalid whitelist entry:\n\n\t%s", line);
+            VASQ_ERROR(logger, "Invalid whitelist entry: %s", line);
             ret = HAMO_RET_BAD_WHITELIST;
             freeEntry(&entry);
             goto error;
@@ -94,7 +94,7 @@ hamoWhitelistLoad(FILE *file, hamoArray *entries)
 
             if (entry.saddr) {
                 if (entry.ipv6 != is_ipv6) {
-                    VASQ_ERROR(logger, "Cannot pair an IPv4 address with an IPv6 address:\n\n\t%s", line);
+                    VASQ_ERROR(logger, "Cannot pair an IPv4 address with an IPv6 address: %s", line);
                     ret = HAMO_RET_BAD_WHITELIST;
                     freeEntry(&entry);
                     goto error;
@@ -120,10 +120,12 @@ hamoWhitelistLoad(FILE *file, hamoArray *entries)
             entry.dport = value;
         }
 
-        ret = hamoArrayAppend(entries, &entry);
-        if (ret != HAMO_RET_OK) {
-            freeEntry(&entry);
-            goto error;
+        if (entry.saddr || entry.daddr || entry.dport > 0) {
+            ret = hamoArrayAppend(entries, &entry);
+            if (ret != HAMO_RET_OK) {
+                freeEntry(&entry);
+                goto error;
+            }
         }
     }
 
@@ -144,6 +146,10 @@ void
 hamoWhitelistFree(hamoArray *entries)
 {
     void *item;
+
+    if (!entries) {
+        return;
+    }
 
     ARRAY_FOR_EACH(entries, item)
     {
