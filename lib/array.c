@@ -10,12 +10,12 @@ int
 hamoArrayAppend(hamoArray *array, void *item)
 {
     if (!array || !item) {
-        VASQ_ERROR(logger, "The arguments cannot be NULL");
+        VASQ_ERROR(hamo_logger, "The arguments cannot be NULL");
         return HAMO_RET_USAGE;
     }
 
     if (array->item_size == 0) {
-        VASQ_ERROR(logger, "The array's item_size cannot be 0");
+        VASQ_ERROR(hamo_logger, "The array's item_size cannot be 0");
         return HAMO_RET_USAGE;
     }
 
@@ -24,7 +24,7 @@ hamoArrayAppend(hamoArray *array, void *item)
             (array->capacity == 0) ? INITIAL_CAPACITY : CAPACITY_EXPANSION(array->capacity + 1);
         void *success;
 
-        success = VASQ_REALLOC(logger, array->data, new_capacity * array->item_size);
+        success = VASQ_REALLOC(hamo_logger, array->data, new_capacity * array->item_size);
         if (!success) {
             return HAMO_RET_OUT_OF_MEMORY;
         }

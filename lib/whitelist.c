@@ -9,9 +9,9 @@ static int
 parseAddress(char **addr, const char *string, size_t length)
 {
     int af;
-    unsigned char buffer[16];
+    unsigned char buffer[IPV6_SIZE];
 
-    *addr = VASQ_MALLOC(logger, length + 1);
+    *addr = VASQ_MALLOC(hamo_logger, length + 1);
     if (!*addr) {
         return HAMO_RET_OUT_OF_MEMORY;
     }
@@ -20,7 +20,7 @@ parseAddress(char **addr, const char *string, size_t length)
 
     af = strchr(*addr, ':') ? AF_INET6 : AF_INET;
     if (inet_pton(af, *addr, buffer) != 1) {
-        VASQ_ERROR(logger, "Invalid IPv%s address: %s", (af == AF_INET) ? "4" : "6", *addr);
+        VASQ_ERROR(hamo_logger, "Invalid IPv%s address: %s", (af == AF_INET) ? "4" : "6", *addr);
         free(*addr);
         *addr = NULL;
         return HAMO_RET_BAD_WHITELIST;
@@ -44,7 +44,7 @@ hamoWhitelistLoad(FILE *file, hamoArray *entries)
     char line[256];
 
     if (!file || !entries) {
-        VASQ_ERROR(logger, "The arguments cannot be NULL");
+        VASQ_ERROR(hamo_logger, "The arguments cannot be NULL");
         return HAMO_RET_USAGE;
     }
 
@@ -60,7 +60,7 @@ hamoWhitelistLoad(FILE *file, hamoArray *entries)
 
         comma = strchr(traverse, ',');
         if (!comma) {
-            VASQ_ERROR(logger, "Invalid whitelist entry: %s", line);
+            VASQ_ERROR(hamo_logger, "Invalid whitelist entry: %s", line);
             ret = HAMO_RET_BAD_WHITELIST;
             goto error;
         }
@@ -76,7 +76,7 @@ hamoWhitelistLoad(FILE *file, hamoArray *entries)
 
         comma = strchr(traverse, ',');
         if (!comma) {
-            VASQ_ERROR(logger, "Invalid whitelist entry: %s", line);
+            VASQ_ERROR(hamo_logger, "Invalid whitelist entry: %s", line);
             ret = HAMO_RET_BAD_WHITELIST;
             freeEntry(&entry);
             goto error;
@@ -94,7 +94,7 @@ hamoWhitelistLoad(FILE *file, hamoArray *entries)
 
             if (entry.saddr) {
                 if (entry.ipv6 != is_ipv6) {
-                    VASQ_ERROR(logger, "Cannot pair an IPv4 address with an IPv6 address: %s", line);
+                    VASQ_ERROR(hamo_logger, "Cannot pair an IPv4 address with an IPv6 address: %s", line);
                     ret = HAMO_RET_BAD_WHITELIST;
                     freeEntry(&entry);
                     goto error;
@@ -112,7 +112,7 @@ hamoWhitelistLoad(FILE *file, hamoArray *entries)
 
             value = strtol(traverse, &endptr, 10);
             if (*endptr != '\0' || value <= 0 || value >= 65536) {
-                VASQ_ERROR(logger, "Invalid port number: %s", traverse);
+                VASQ_ERROR(hamo_logger, "Invalid port number: %s", traverse);
                 ret = HAMO_RET_BAD_WHITELIST;
                 freeEntry(&entry);
                 goto error;

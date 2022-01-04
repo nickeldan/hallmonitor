@@ -4,7 +4,7 @@
 #include <vasq/logger.h>
 #include <vasq/placeholder.h>
 
-#define HAMO_VERSION "0.1.0"
+#define HAMO_VERSION "0.0.1"
 
 //#define HAMO_IPV6_SUPPORTED
 
@@ -32,17 +32,6 @@ enum hamoRetValue {
     HAMO_RET_POLL_FAILED,
 };
 
-/**
- * @brief Initializes the logger.
- *
- * @param fd The descriptor to which to write the log messages.
- * @param level The maximum log level to use.
- *
- * @return VASQ_RET_OK if successful and an error code otherwise.
- */
-int
-hamoLoggerInit(int fd, vasqLogLevel_t level);
-
-extern vasqLogger *logger;
+extern vasqLogger *hamo_logger;
 
 #endif

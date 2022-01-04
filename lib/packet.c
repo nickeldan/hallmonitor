@@ -48,7 +48,7 @@ determineLinkLayerSize(int link_type, const uint8_t *data, unsigned int size)
         }
     */
     else {
-        VASQ_ERROR(logger, "Unsupported data link type: %s", pcap_datalink_val_to_name(link_type));
+        VASQ_ERROR(hamo_logger, "Unsupported data link type: %s", pcap_datalink_val_to_name(link_type));
         return (unsigned int)-1;
     }
 }
@@ -59,29 +59,29 @@ parseIPv4Header(const uint8_t *header, unsigned int size, hamoRecord *record, un
     unsigned int ihl, total_length;
 
     if (size < IPV4_MIN_HEADER_SIZE) {
-        VASQ_ERROR(logger, "Not enough bytes captured");
+        VASQ_ERROR(hamo_logger, "Not enough bytes captured");
         return false;
     }
 
     ihl = (header[IPV4_IHL_OFFSET] & 0x0f) * 4;
     if (ihl < IPV4_MIN_HEADER_SIZE) {
-        VASQ_ERROR(logger, "Invalid internet header length: %u", ihl);
+        VASQ_ERROR(hamo_logger, "Invalid internet header length: %u", ihl);
         return false;
     }
     *so_far += ihl;
 
     total_length = fetchU16(header + IPV4_TOTAL_LENGTH_OFFSET);
     if (total_length < ihl) {
-        VASQ_ERROR(logger, "Invalid IPv4 total length: %u", total_length);
+        VASQ_ERROR(hamo_logger, "Invalid IPv4 total length: %u", total_length);
         return false;
     }
     else if (total_length > size) {
-        VASQ_ERROR(logger, "Not enough bytes captured");
+        VASQ_ERROR(hamo_logger, "Not enough bytes captured");
         return false;
     }
 
     if (header[IPV4_PROTOCOL_OFFSET] != IPV4_TCP_PROTOCOL) {
-        VASQ_ERROR(logger, "We've somehow captured a non-TCP packet despite our BPF");
+        VASQ_ERROR(hamo_logger, "We've somehow captured a non-TCP packet despite our BPF");
         return false;
     }
 
@@ -95,12 +95,12 @@ static bool
 parseTCPHeader(const uint8_t *header, unsigned int size, hamoRecord *record)
 {
     if (size < TCP_MIN_HEADER_SIZE) {
-        VASQ_WARNING(logger, "Not enough bytes captured");
+        VASQ_WARNING(hamo_logger, "Not enough bytes captured");
         return false;
     }
 
     if (!(header[TCP_FLAGS_OFFSET] & TCP_SYN_FLAG)) {
-        VASQ_ERROR(logger, "We've somehow captured a non-SYN TCP packet despite our BPF");
+        VASQ_ERROR(hamo_logger, "We've somehow captured a non-SYN TCP packet despite our BPF");
         return false;
     }
     record->tcp_flags = header[TCP_FLAGS_OFFSET];
@@ -119,8 +119,8 @@ parsePacket(u_char *user, const struct pcap_pkthdr *header, const u_char *data)
     hamoRecord record = {0};
     void *item;
 
-    VASQ_DEBUG(logger, "Captured %u bytes of a %u-byte packet", size, header->len);
-    VASQ_HEXDUMP(logger, "Packet", data, size);
+    VASQ_DEBUG(hamo_logger, "Captured %u bytes of a %u-byte packet", size, header->len);
+    VASQ_HEXDUMP(hamo_logger, "Packet", data, size);
 
     so_far = determineLinkLayerSize(ctx->link_type, data, size);
     if (so_far == (unsigned int)-1) {
@@ -128,7 +128,7 @@ parsePacket(u_char *user, const struct pcap_pkthdr *header, const u_char *data)
     }
 
     if (size <= so_far) {
-        VASQ_WARNING(logger, "Not enough bytes captured");
+        VASQ_WARNING(hamo_logger, "Not enough bytes captured");
         return;
     }
 
@@ -147,11 +147,11 @@ parsePacket(u_char *user, const struct pcap_pkthdr *header, const u_char *data)
         }
         break;
 #else
-        VASQ_ERROR(logger, "We've somehow captured an IPv6 packet despite our BPF");
+        VASQ_ERROR(hamo_logger, "We've somehow captured an IPv6 packet despite our BPF");
         return;
 #endif
 
-    default: VASQ_ERROR(logger, "Invalid IP version: %u", (data[so_far] >> 4)); return;
+    default: VASQ_ERROR(hamo_logger, "Invalid IP version: %u", (data[so_far] >> 4)); return;
     }
 
     if (!parseTCPHeader(data + so_far, size - so_far, &record)) {
@@ -189,6 +189,6 @@ hamoProcessPacket(pcap_t *handle, const hamoArray *journalers)
     ctx.journalers = journalers;
 
     if (pcap_dispatch(handle, 1, parsePacket, (u_char *)&ctx) == PCAP_ERROR) {
-        VASQ_ERROR(logger, "pcap_dispatch: %s", pcap_geterr(handle));
+        VASQ_ERROR(hamo_logger, "pcap_dispatch: %s", pcap_geterr(handle));
     }
 }

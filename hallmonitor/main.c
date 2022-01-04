@@ -7,14 +7,6 @@
 #include <hamo/definitions.h>
 #include <hamo/journal.h>
 
-#ifndef LL_USE
-#ifdef DEBUG
-#define LL_USE VASQ_LL_DEBUG
-#else
-#define LL_USE VASQ_LL_INFO
-#endif
-#endif
-
 #define TCP_ACK_FLAG 0x10
 
 static void
@@ -31,11 +23,11 @@ printRecord(void *user, const hamoRecord *record)
     packet_type = (record->tcp_flags & TCP_ACK_FLAG) ? "SYN-ACK" : "SYN";
 
     if (record->ipv6) {
-        VASQ_INFO(logger, "%s packet sent from [%s]:%u to [%s]:%u", packet_type, src_buffer, record->sport,
-                  dst_buffer, record->dport);
+        VASQ_INFO(hamo_logger, "%s packet sent from [%s]:%u to [%s]:%u", packet_type, src_buffer,
+                  record->sport, dst_buffer, record->dport);
     }
     else {
-        VASQ_INFO(logger, "%s packet sent from %s:%u to %s:%u", packet_type, src_buffer, record->sport,
+        VASQ_INFO(hamo_logger, "%s packet sent from %s:%u to %s:%u", packet_type, src_buffer, record->sport,
                   dst_buffer, record->dport);
     }
 }
@@ -54,11 +46,26 @@ main(int argc, char **argv)
     }
     device = argv[1];
 
-    if (hamoLoggerInit(STDOUT_FILENO, LL_USE) != VASQ_RET_OK) {
+#ifndef LL_USE
+#ifdef DEBUG
+#define LL_USE VASQ_LL_DEBUG
+#else
+#define LL_USE VASQ_LL_INFO
+#endif
+#endif
+
+#ifdef DEBUG
+#define LOGGER_FORMAT "%t [%L]%_ %f:%l: %M\n"
+#else
+#define LOGGER_FORMAT "%t [%L]%_ %M\n"
+#endif
+    ret = vasqLoggerCreate(STDOUT_FILENO, LL_USE, LOGGER_FORMAT, NULL, &hamo_logger);
+    if (ret != VASQ_RET_OK) {
+        fprintf(stderr, "vasqLoggerCreate: %s\n", vasqErrorString(ret));
         return HAMO_RET_OUT_OF_MEMORY;
     }
 
-    VASQ_INFO(logger, "Running Hallmonitor %s", HAMO_VERSION);
+    VASQ_INFO(hamo_logger, "Running Hallmonitor %s", HAMO_VERSION);
 
     ret = hamoArrayAppend(&dispatcher.journalers, &journaler);
     if (ret != HAMO_RET_OK) {
@@ -70,10 +77,13 @@ main(int argc, char **argv)
         goto done;
     }
 
+    VASQ_INFO(hamo_logger, "Beginning packet capturing");
+
     while ((ret = hamoPcapDispatch(&dispatcher, -1)) == HAMO_RET_OK) {}
 
 done:
     hamoDispatcherFree(&dispatcher);
+    vasqLoggerFree(hamo_logger);
 
     return ret;
 }

@@ -14,13 +14,13 @@
 #define HAMO_BPF_MAX_SIZE       1024
 #define HAMO_MAX_BYTES_CAPTURED 512
 
-#define BUFFER_WRITE_CHECK(format, ...)                                           \
-    do {                                                                          \
-        len += snprintf(bpf + len, sizeof(bpf) - len, format, ##__VA_ARGS__);     \
-        if (len >= sizeof(bpf)) {                                                 \
-            VASQ_ERROR(logger, "BPF is too long (%zu characters at least)", len); \
-            return HAMO_RET_OVERFLOW;                                             \
-        }                                                                         \
+#define BUFFER_WRITE_CHECK(format, ...)                                                \
+    do {                                                                               \
+        len += snprintf(bpf + len, sizeof(bpf) - len, format, ##__VA_ARGS__);          \
+        if (len >= sizeof(bpf)) {                                                      \
+            VASQ_ERROR(hamo_logger, "BPF is too long (%zu characters at least)", len); \
+            return HAMO_RET_OVERFLOW;                                                  \
+        }                                                                              \
     } while (0)
 
 static int
@@ -35,7 +35,7 @@ setBpf(pcap_t *handle, const char *device, const hamoArray *whitelist)
 
     len = strnlen(bpf, sizeof(bpf));
     if (len >= sizeof(bpf)) {
-        VASQ_CRITICAL(logger, "BPF buffer is too small");
+        VASQ_CRITICAL(hamo_logger, "BPF buffer is too small");
         return HAMO_RET_OVERFLOW;
     }
 
@@ -44,7 +44,7 @@ setBpf(pcap_t *handle, const char *device, const hamoArray *whitelist)
 #endif
 
     if (pcap_lookupnet(device, &netp, &maskp, errbuf) != 0) {
-        VASQ_ERROR(logger, "pcap_lookupnet: %s", errbuf);
+        VASQ_ERROR(hamo_logger, "pcap_lookupnet: %s", errbuf);
         return HAMO_RET_PCAP_LOOKUP_NET;
     }
 
@@ -72,7 +72,7 @@ setBpf(pcap_t *handle, const char *device, const hamoArray *whitelist)
 
 #ifndef HAMO_IPV6_SUPPORTED
             if (entry->ipv6) {
-                VASQ_WARNING(logger,
+                VASQ_WARNING(hamo_logger,
                              "Skipping whitelist entry because IPv6 addresses are not currently supported");
                 continue;
             }
@@ -108,10 +108,10 @@ setBpf(pcap_t *handle, const char *device, const hamoArray *whitelist)
         }
     }
 
-    VASQ_DEBUG(logger, "BPF: %s", bpf);
+    VASQ_DEBUG(hamo_logger, "BPF: %s", bpf);
 
     if (pcap_compile(handle, &program, bpf, true, 0) != 0) {
-        VASQ_ERROR(logger, "pcap_compile: %s", pcap_geterr(handle));
+        VASQ_ERROR(hamo_logger, "pcap_compile: %s", pcap_geterr(handle));
         return HAMO_RET_PCAP_COMPILE;
     }
 
@@ -121,7 +121,7 @@ setBpf(pcap_t *handle, const char *device, const hamoArray *whitelist)
         ret = HAMO_RET_OK;
     }
     else {
-        VASQ_ERROR(logger, "pcap_setfilter: %s", pcap_geterr(handle));
+        VASQ_ERROR(hamo_logger, "pcap_setfilter: %s", pcap_geterr(handle));
         ret = HAMO_RET_PCAP_SET_FILTER;
     }
 
@@ -159,26 +159,26 @@ hamoPcapAdd(hamoArray *handles, const char *device, const hamoArray *whitelist)
     pcap_t *handle;
 
     if (!handles || !device) {
-        VASQ_ERROR(logger, "handles and device cannot be NULL");
+        VASQ_ERROR(hamo_logger, "handles and device cannot be NULL");
         return HAMO_RET_USAGE;
     }
 
-    VASQ_INFO(logger, "Creating a packet capture handle for the %s device", device);
+    VASQ_INFO(hamo_logger, "Creating a packet capture handle for the %s device", device);
 
     handle = pcap_open_live(device, HAMO_MAX_BYTES_CAPTURED, true, 1000, errbuf);
     if (!handle) {
-        VASQ_ERROR(logger, "pcap_open_live: %s", errbuf);
+        VASQ_ERROR(hamo_logger, "pcap_open_live: %s", errbuf);
         return HAMO_RET_PCAP_OPEN;
     }
 
     link_type = pcap_datalink(handle);
     link_type_name = pcap_datalink_val_to_name(link_type);
     if (!hamoLinkTypeSupported(link_type)) {
-        VASQ_ERROR(logger, "Unsupported data link type: %s", link_type_name);
+        VASQ_ERROR(hamo_logger, "Unsupported data link type: %s", link_type_name);
         ret = HAMO_RET_PCAP_DATALINK_UNSUPPORTED;
         goto error;
     }
-    VASQ_DEBUG(logger, "Data link type: %s", link_type_name);
+    VASQ_DEBUG(hamo_logger, "Data link type: %s", link_type_name);
 
     ret = setBpf(handle, device, whitelist);
     if (ret != HAMO_RET_OK) {
@@ -186,13 +186,13 @@ hamoPcapAdd(hamoArray *handles, const char *device, const hamoArray *whitelist)
     }
 
     if (pcap_get_selectable_fd(handle) == PCAP_ERROR) {
-        VASQ_ERROR(logger, "No selectable file descriptor associated with PCAP handle");
+        VASQ_ERROR(hamo_logger, "No selectable file descriptor associated with PCAP handle");
         ret = HAMO_RET_PCAP_NO_FD;
         goto error;
     }
 
     if (pcap_setnonblock(handle, true, errbuf) != 0) {
-        VASQ_ERROR(logger, "pcap_setnonblock: %s", errbuf);
+        VASQ_ERROR(hamo_logger, "pcap_setnonblock: %s", errbuf);
         ret = HAMO_RET_PCAP_SET_NONBLOCK;
         goto error;
     }
@@ -218,7 +218,7 @@ hamoPcapDispatch(const hamoDispatcher *dispatcher, int timeout)
     void *item;
 
     if (!dispatcher) {
-        VASQ_ERROR(logger, "dispatcher cannot be NULL");
+        VASQ_ERROR(hamo_logger, "dispatcher cannot be NULL");
         return HAMO_RET_USAGE;
     }
 
@@ -243,11 +243,11 @@ hamoPcapDispatch(const hamoDispatcher *dispatcher, int timeout)
     case -1:
         local_errno = errno;
         if (local_errno == EINTR) {
-            VASQ_WARNING(logger, "poll interrupted by a signal");
+            VASQ_WARNING(hamo_logger, "poll interrupted by a signal");
             return HAMO_RET_OK;
         }
         else {
-            VASQ_PERROR(logger, "poll", local_errno);
+            VASQ_PERROR(hamo_logger, "poll", local_errno);
             return HAMO_RET_POLL_FAILED;
         }
 
@@ -258,7 +258,7 @@ hamoPcapDispatch(const hamoDispatcher *dispatcher, int timeout)
             if (pollers[k].revents & POLLIN) {
                 pcap_t *handle = *(pcap_t **)ARRAY_GET_ITEM(&dispatcher->handles, k);
 
-                VASQ_DEBUG(logger, "Handle %zu is ready for reading", k);
+                VASQ_DEBUG(hamo_logger, "Handle %zu is ready for reading", k);
                 hamoProcessPacket(handle, &dispatcher->journalers);
             }
         }
