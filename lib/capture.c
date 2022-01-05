@@ -1,8 +1,8 @@
-#include <alloca.h>
 #include <arpa/inet.h>
 #include <errno.h>
 #include <poll.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -163,7 +163,7 @@ hamoPcapAdd(hamoArray *handles, const char *device, const hamoArray *whitelist)
         return HAMO_RET_USAGE;
     }
 
-    VASQ_INFO(hamo_logger, "Creating a packet capture handle for the %s device", device);
+    VASQ_INFO(hamo_logger, "Creating a packet capture handle for the \"%s\" device", device);
 
     handle = pcap_open_live(device, HAMO_MAX_BYTES_CAPTURED, true, 1000, errbuf);
     if (!handle) {
@@ -213,6 +213,7 @@ error:
 int
 hamoPcapDispatch(const hamoDispatcher *dispatcher, int timeout)
 {
+    int ret = HAMO_RET_OK;
     size_t idx;
     struct pollfd *pollers;
     void *item;
@@ -226,7 +227,10 @@ hamoPcapDispatch(const hamoDispatcher *dispatcher, int timeout)
         return HAMO_RET_OK;
     }
 
-    pollers = alloca(sizeof(*pollers) * dispatcher->handles.length);
+    pollers = VASQ_MALLOC(hamo_logger, sizeof(*pollers) * dispatcher->handles.length);
+    if (!pollers) {
+        return HAMO_RET_OUT_OF_MEMORY;
+    }
     idx = 0;
     ARRAY_FOR_EACH(&dispatcher->handles, item)
     {
@@ -244,12 +248,12 @@ hamoPcapDispatch(const hamoDispatcher *dispatcher, int timeout)
         local_errno = errno;
         if (local_errno == EINTR) {
             VASQ_WARNING(hamo_logger, "poll interrupted by a signal");
-            return HAMO_RET_OK;
         }
         else {
             VASQ_PERROR(hamo_logger, "poll", local_errno);
-            return HAMO_RET_POLL_FAILED;
+            ret = HAMO_RET_POLL_FAILED;
         }
+        break;
 
     case 0: break;
 
@@ -265,5 +269,7 @@ hamoPcapDispatch(const hamoDispatcher *dispatcher, int timeout)
         break;
     }
 
-    return HAMO_RET_OK;
+    free(pollers);
+
+    return ret;
 }

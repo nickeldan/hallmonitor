@@ -25,7 +25,7 @@ printRecord(void *user, const hamoRecord *record)
     const char *packet_type;
 
     inet_ntop(af, &record->source_address, src_buffer, sizeof(src_buffer));
-    inet_ntop(af, &record->destination_address, dst_buffer, sizeof(src_buffer));
+    inet_ntop(af, &record->destination_address, dst_buffer, sizeof(dst_buffer));
 
     packet_type = (record->tcp_flags & TCP_ACK_FLAG) ? "SYN-ACK" : "SYN";
 
@@ -44,7 +44,7 @@ main(int argc, char **argv)
 {
     int ret, option;
     vasqLogLevel_t level = VASQ_LL_INFO;
-    const char *format_string = "%t [%L]%_ M\n";
+    const char *format_string = "%t [%L]%_ %M\n";
     void *item;
     hamoArray devices = HAMO_ARRAY(const char *);
     hamoArray whitelist_entries = HAMO_ARRAY(hamoWhitelistEntry);
@@ -101,7 +101,7 @@ main(int argc, char **argv)
         }
     }
 
-    VASQ_INFO(hamo_logger, "Running Hallmonitor %s", HAMO_VERSION);
+    VASQ_INFO(hamo_logger, "Running Hall Monitor %s", HAMO_VERSION);
 
     ret = hamoArrayAppend(&dispatcher.journalers, &journaler);
     if (ret != HAMO_RET_OK) {

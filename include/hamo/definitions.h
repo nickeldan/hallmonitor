@@ -2,7 +2,6 @@
 #define HALLMONITOR_DEFINITIONS_H
 
 #include <vasq/logger.h>
-#include <vasq/placeholder.h>
 
 #define HAMO_VERSION "0.0.1"
 
