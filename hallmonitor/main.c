@@ -1,19 +1,28 @@
 #include <arpa/inet.h>
+#include <signal.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
 #include <hamo/capture.h>
-#include <hamo/definitions.h>
 #include <hamo/journal.h>
 
 #define TCP_ACK_FLAG 0x10
+
+static volatile sig_atomic_t signal_caught;
 
 static void
 usage(const char *exec)
 {
     printf("Usage: %s [-d <network device>]* [-w <whitelist file>]* [-v] [-h]\n", exec);
+}
+
+static void
+signalHandler(int signum)
+{
+    (void)signum;
+    signal_caught = true;
 }
 
 static void
@@ -46,6 +55,7 @@ main(int argc, char **argv)
     vasqLogLevel_t level = VASQ_LL_INFO;
     const char *format_string = "%t [%L]%_ %M\n";
     void *item;
+    struct sigaction action = {.sa_handler = signalHandler};
     hamoArray devices = HAMO_ARRAY(const char *);
     hamoArray whitelist_entries = HAMO_ARRAY(hamoWhitelistEntry);
     hamoDispatcher dispatcher = HAMO_DISPATCHER_INIT;
@@ -72,6 +82,8 @@ main(int argc, char **argv)
         fprintf(stderr, "vasqLoggerCreate: %s\n", vasqErrorString(ret));
         return HAMO_RET_OUT_OF_MEMORY;
     }
+
+    VASQ_INFO(hamo_logger, "Running Hall Monitor %s", HAMO_VERSION);
 
     optind = 1;
     while ((option = getopt(argc, argv, "d:w:vh")) != -1) {
@@ -101,8 +113,6 @@ main(int argc, char **argv)
         }
     }
 
-    VASQ_INFO(hamo_logger, "Running Hall Monitor %s", HAMO_VERSION);
-
     ret = hamoArrayAppend(&dispatcher.journalers, &journaler);
     if (ret != HAMO_RET_OK) {
         goto done;
@@ -124,11 +134,14 @@ main(int argc, char **argv)
             goto done;
         }
     }
-    hamoArrayFree(&whitelist_entries);
+    hamoWhitelistFree(&whitelist_entries);
+
+    sigfillset(&action.sa_mask);
+    sigaction(SIGINT, &action, NULL);
 
     VASQ_INFO(hamo_logger, "Beginning packet capturing");
 
-    while ((ret = hamoPcapDispatch(&dispatcher, -1)) == HAMO_RET_OK) {}
+    while ((ret = hamoPcapDispatch(&dispatcher, -1)) == HAMO_RET_OK && !signal_caught) {}
 
 done:
     hamoDispatcherFree(&dispatcher);

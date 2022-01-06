@@ -15,6 +15,25 @@ typedef struct hamoWhitelistEntry {
 } hamoWhitelistEntry;
 
 /**
+ * @brief Frees any data associated with a whitelist entry.
+ *
+ * @param entry A pointer to the entry.
+ */
+void
+hamoWhitelistEntryFree(hamoWhitelistEntry *entry);
+
+/**
+ * @brief Parses a whitelist entry from a string.
+ *
+ * @param string The string.
+ * @param entry A pointer to the entry to be populated.
+ *
+ * @return HAMO_RET_OK if successful and an error code otherwise.
+ */
+int
+hamoWhitelistEntryParse(const char *string, hamoWhitelistEntry *entry);
+
+/**
  * @brief Initializes the whitelist from a file.
  *
  * @param file A file handle opened for reading.
