@@ -56,8 +56,11 @@ setBpf(pcap_t *handle, const char *device, const hamoArray *whitelist)
 
 #define GET_BYTE(n) ((unsigned char *)&netp)[n]
     if (netp != 0) {
-        BUFFER_WRITE_CHECK(" and dst net %u.%u.%u.%u/%u", GET_BYTE(0), GET_BYTE(1), GET_BYTE(2), GET_BYTE(3),
-                           mask_size);
+        const char *types[2] = {"src", "dst"};
+        for (int k = 0; k < 2; k++) {
+            BUFFER_WRITE_CHECK(" and %s net %u.%u.%u.%u/%u", types[k], GET_BYTE(0), GET_BYTE(1), GET_BYTE(2),
+                               GET_BYTE(3), mask_size);
+        }
     }
 #undef GET_BYTE
 
