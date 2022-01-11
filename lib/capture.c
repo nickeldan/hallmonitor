@@ -1,6 +1,5 @@
 #include <arpa/inet.h>
 #include <errno.h>
-#include <poll.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
@@ -101,7 +100,7 @@ setBpf(pcap_t *handle, const char *device, const hamoArray *whitelist)
                     BUFFER_WRITE_CHECK(" and ");
                 }
 
-                BUFFER_WRITE_CHECK("dst port %u", entry->dport);
+                BUFFER_WRITE_CHECK("port %u", entry->dport);
             }
 
             BUFFER_WRITE_CHECK(")");
@@ -141,25 +140,25 @@ hamoDispatcherFree(hamoDispatcher *dispatcher)
 
     ARRAY_FOR_EACH(&dispatcher->handles, item)
     {
-        pcap_t *handle = *(pcap_t **)item;
-
-        pcap_close(handle);
+        pcap_close(*(pcap_t **)item);
     }
 
     hamoArrayFree(&dispatcher->handles);
+    hamoArrayFree(&dispatcher->pollers);
     hamoArrayFree(&dispatcher->journalers);
 }
 
 int
-hamoPcapAdd(hamoArray *handles, const char *device, const hamoArray *whitelist)
+hamoPcapAdd(hamoDispatcher *dispatcher, const char *device, const hamoArray *whitelist)
 {
     int ret, link_type;
     char errbuf[PCAP_ERRBUF_SIZE];
     const char *link_type_name;
     pcap_t *handle;
+    struct pollfd poller;
 
-    if (!handles || !device) {
-        VASQ_ERROR(hamo_logger, "handles and device cannot be NULL");
+    if (!dispatcher || !device) {
+        VASQ_ERROR(hamo_logger, "dispatcher and device cannot be NULL");
         return HAMO_RET_USAGE;
     }
 
@@ -185,11 +184,13 @@ hamoPcapAdd(hamoArray *handles, const char *device, const hamoArray *whitelist)
         goto error;
     }
 
-    if (pcap_get_selectable_fd(handle) == PCAP_ERROR) {
+    poller.fd = pcap_get_selectable_fd(handle);
+    if (poller.fd == PCAP_ERROR) {
         VASQ_ERROR(hamo_logger, "No selectable file descriptor associated with PCAP handle");
         ret = HAMO_RET_PCAP_NO_FD;
         goto error;
     }
+    poller.events = POLLIN;
 
     if (pcap_setnonblock(handle, true, errbuf) != 0) {
         VASQ_ERROR(hamo_logger, "pcap_setnonblock: %s", errbuf);
@@ -197,8 +198,14 @@ hamoPcapAdd(hamoArray *handles, const char *device, const hamoArray *whitelist)
         goto error;
     }
 
-    ret = hamoArrayAppend(handles, &handle);
+    ret = hamoArrayAppend(&dispatcher->handles, &handle);
     if (ret != HAMO_RET_OK) {
+        goto error;
+    }
+
+    ret = hamoArrayAppend(&dispatcher->pollers, &poller);
+    if (ret != HAMO_RET_OK) {
+        dispatcher->handles.length--;
         goto error;
     }
 
@@ -214,9 +221,7 @@ int
 hamoPcapDispatch(const hamoDispatcher *dispatcher, int timeout)
 {
     int ret = HAMO_RET_OK;
-    size_t idx;
     struct pollfd *pollers;
-    void *item;
 
     if (!dispatcher) {
         VASQ_ERROR(hamo_logger, "dispatcher cannot be NULL");
@@ -227,21 +232,11 @@ hamoPcapDispatch(const hamoDispatcher *dispatcher, int timeout)
         return HAMO_RET_OK;
     }
 
-    pollers = VASQ_MALLOC(hamo_logger, sizeof(*pollers) * dispatcher->handles.length);
-    if (!pollers) {
-        return HAMO_RET_OUT_OF_MEMORY;
-    }
-    idx = 0;
-    ARRAY_FOR_EACH(&dispatcher->handles, item)
-    {
-        pcap_t *handle = *(pcap_t **)item;
+    VASQ_ASSERT(hamo_logger, dispatcher->handles.length == dispatcher->pollers.length);
 
-        pollers[idx].fd = pcap_get_selectable_fd(handle);
-        pollers[idx].events = POLLIN;
-        idx++;
-    }
+    pollers = ARRAY_GET_ITEM(&dispatcher->pollers, 0);
 
-    switch (poll(pollers, dispatcher->handles.length, timeout)) {
+    switch (poll(pollers, dispatcher->pollers.length, timeout)) {
         int local_errno;
 
     case -1:
@@ -268,8 +263,6 @@ hamoPcapDispatch(const hamoDispatcher *dispatcher, int timeout)
         }
         break;
     }
-
-    free(pollers);
 
     return ret;
 }

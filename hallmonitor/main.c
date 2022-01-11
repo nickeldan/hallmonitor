@@ -7,6 +7,7 @@
 
 #include <hamo/capture.h>
 #include <hamo/journal.h>
+#include <hamo/whitelist.h>
 
 #define TCP_ACK_FLAG 0x10
 
@@ -121,7 +122,7 @@ main(int argc, char **argv)
     if (devices.length > 0) {
         ARRAY_FOR_EACH(&devices, item)
         {
-            ret = hamoPcapAdd(&dispatcher.handles, *(const char **)item, &whitelist_entries);
+            ret = hamoPcapAdd(&dispatcher, *(const char **)item, &whitelist_entries);
             if (ret != HAMO_RET_OK) {
                 goto done;
             }
@@ -129,7 +130,7 @@ main(int argc, char **argv)
         hamoArrayFree(&devices);
     }
     else {
-        ret = hamoPcapAdd(&dispatcher.handles, "any", &whitelist_entries);
+        ret = hamoPcapAdd(&dispatcher, "any", &whitelist_entries);
         if (ret != HAMO_RET_OK) {
             goto done;
         }

@@ -10,7 +10,7 @@ else
 	CFLAGS += -O3 -DNDEBUG
 endif
 
-all: _all
+all: hamo
 
 HAMO_DIR := .
 include make.mk
@@ -28,9 +28,7 @@ include $(MAIN_DEPS_FILE)
 
 endif
 
-.PHONY: all _all libs clean $(CLEAN_TARGETS)
-
-_all: hamo
+.PHONY: all libs clean $(CLEAN_TARGETS)
 
 libs: $(HAMO_SHARED_LIBRARY) $(HAMO_STATIC_LIBRARY)
 
