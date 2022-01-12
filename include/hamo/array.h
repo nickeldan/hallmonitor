@@ -16,7 +16,7 @@ typedef struct hamoArray {
     }
 
 int
-hamoArrayAppend(hamoArray *array, void *item);
+hamoArrayAppend(hamoArray *array, const void *item);
 
 void
 hamoArrayFree(hamoArray *array);

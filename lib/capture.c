@@ -1,5 +1,6 @@
 #include <arpa/inet.h>
 #include <errno.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,17 +11,29 @@
 
 #include "packet_internal.h"
 
-#define HAMO_BPF_MAX_SIZE       1024
+#ifndef HAMO_BPF_MAX_SIZE
+#define HAMO_BPF_MAX_SIZE 1024
+#endif
+
 #define HAMO_MAX_BYTES_CAPTURED 512
 
-#define BUFFER_WRITE_CHECK(format, ...)                                                \
-    do {                                                                               \
-        len += snprintf(bpf + len, sizeof(bpf) - len, format, ##__VA_ARGS__);          \
-        if (len >= sizeof(bpf)) {                                                      \
-            VASQ_ERROR(hamo_logger, "BPF is too long (%zu characters at least)", len); \
-            return HAMO_RET_OVERFLOW;                                                  \
-        }                                                                              \
-    } while (0)
+static bool
+bufferWriteCheck(unsigned int line_no, char *buffer, size_t *len, const char *format, ...)
+{
+    va_list args;
+
+    va_start(args, format);
+    *len += vsnprintf(buffer + *len, HAMO_BPF_MAX_SIZE - *len, format, args);
+    va_end(args);
+
+    if (*len >= HAMO_BPF_MAX_SIZE) {
+        vasqLogStatement(hamo_logger, VASQ_LL_ERROR, __FILE__, "setBpf", line_no,
+                         "BPF is too long (%zu characters at least)", len);
+        return false;
+    }
+
+    return true;
+}
 
 static int
 setBpf(pcap_t *handle, const char *device, const hamoArray *whitelist)
@@ -31,6 +44,13 @@ setBpf(pcap_t *handle, const char *device, const hamoArray *whitelist)
     unsigned int mask_size;
     char errbuf[PCAP_ERRBUF_SIZE], bpf[HAMO_BPF_MAX_SIZE] = "tcp[tcpflags] & (tcp-syn) != 0";
     struct bpf_program program;
+
+#define BUFFER_WRITE_CHECK(format, ...)                                      \
+    do {                                                                     \
+        if (!bufferWriteCheck(__LINE__, bpf, &len, format, ##__VA_ARGS__)) { \
+            return HAMO_RET_OVERFLOW;                                        \
+        }                                                                    \
+    } while (0)
 
     len = strnlen(bpf, sizeof(bpf));
     if (len >= sizeof(bpf)) {
@@ -57,6 +77,7 @@ setBpf(pcap_t *handle, const char *device, const hamoArray *whitelist)
 #define GET_BYTE(n) ((unsigned char *)&netp)[n]
     if (netp != 0) {
         const char *types[2] = {"src", "dst"};
+
         for (int k = 0; k < 2; k++) {
             BUFFER_WRITE_CHECK(" and %s net %u.%u.%u.%u/%u", types[k], GET_BYTE(0), GET_BYTE(1), GET_BYTE(2),
                                GET_BYTE(3), mask_size);

@@ -7,7 +7,7 @@
 #define CAPACITY_EXPANSION(size) (((size)*5) / 4)
 
 int
-hamoArrayAppend(hamoArray *array, void *item)
+hamoArrayAppend(hamoArray *array, const void *item)
 {
     if (!array || !item) {
         VASQ_ERROR(hamo_logger, "The arguments cannot be NULL");
