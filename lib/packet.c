@@ -188,7 +188,7 @@ hamoProcessPacket(pcap_t *handle, const hamoArray *journalers)
     ctx.link_type = pcap_datalink(handle);
     ctx.journalers = journalers;
 
-    if (pcap_dispatch(handle, 1, parsePacket, (u_char *)&ctx) == PCAP_ERROR) {
+    if (pcap_dispatch(handle, -1, parsePacket, (u_char *)&ctx) == PCAP_ERROR) {
         VASQ_ERROR(hamo_logger, "pcap_dispatch: %s", pcap_geterr(handle));
     }
 }

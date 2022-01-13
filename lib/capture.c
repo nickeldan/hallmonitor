@@ -233,6 +233,8 @@ hamoPcapAdd(hamoDispatcher *dispatcher, const char *device, const hamoArray *whi
         goto error;
     }
 
+    VASQ_DEBUG(hamo_logger, "Handle created at index %zu", dispatcher->handles.length - 1);
+
     return HAMO_RET_OK;
 
 error:
