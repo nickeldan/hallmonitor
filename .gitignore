@@ -5,3 +5,4 @@
 *.code-workspace
 deps.mk
 main_deps.mk
+README.pdf
