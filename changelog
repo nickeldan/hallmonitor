@@ -1,0 +1,3 @@
+0.1.0:
+    - Renamed capture.{h,c} to hamo.{h,c}.
+    - Added the count parameter to hamoPcapDispatch.
