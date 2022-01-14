@@ -1,5 +1,5 @@
-#ifndef HALLMONITOR_CAPTURE_H
-#define HALLMONITOR_CAPTURE_H
+#ifndef HALLMONITOR_HAMO_H
+#define HALLMONITOR_HAMO_H
 
 #include <poll.h>
 
@@ -42,10 +42,12 @@ hamoPcapAdd(hamoDispatcher *dispatcher, const char *device, const hamoArray *whi
  * @param dispatcher A pointer to the dispatcher.
  * @param timeout The number of seconds to wait for packets to become available.  A negative value means an
  * infinite timeout.
+ * @param count If not NULL, a pointer to an integer which will be increased by the number of packets
+ * successfully parsed.
  *
  * @return HAMO_RET_OK if sucessful and an error code otherwise.
  */
 int
-hamoPcapDispatch(const hamoDispatcher *dispatcher, int timeout);
+hamoPcapDispatch(const hamoDispatcher *dispatcher, int timeout, unsigned int *count);
 
-#endif  // HALLMONITOR_CAPTURE_H
+#endif  // HALLMONITOR_HAMO_H

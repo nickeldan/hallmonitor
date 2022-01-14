@@ -3,8 +3,8 @@ Hall Monitor
 ============
 
 :Author: Daniel Walker
-:Version: 0.0.1
-:Date: 2022-01-13
+:Version: 0.1.0
+:Date: 2022-01-14
 
 Overview
 ========
@@ -15,8 +15,8 @@ executable as well as a library which can be used in other projects.
 API
 ===
 
-The library centers around use of a **hamoDispatcher** object, defined in hamo/capture.h.  A dispatcher can
-be initialized by
+The library centers around use of a **hamoDispatcher** object, defined in hamo/hamo.h.  A dispatcher can be
+initialized by
 
 .. code-block:: c
 
@@ -56,7 +56,7 @@ register at least one **hamoJournaler** with the dispatcher.  Its definition (pr
 
     typedef struct hamoJournaler {
         void (*func)(void *, const hamoRecord *);
-        voido *user;
+        void *user;
     } hamoJournaler;
 
 where **hamoRecord** is defined by the same file as
@@ -93,12 +93,15 @@ Once all of your devices and journalers have been added, you can dispatch the di
 .. code-block:: c
 
     int
-    hamoPcapDispatch(const hamoDispatcher *dispatcher, int timeout);
+    hamoPcapDispatch(const hamoDispatcher *dispatcher, int timeout, unsigned int *count);
 
 This function will wait on all of its registered network devices until at least one of them has packets to
 capture or the timer expires (set **timeout** to -1 to wait indefinitely).  You should be aware that a
 device may be ready for reading but have no packets which satisfy the BPF and thus none of the journalers
 will be called.  This function returns **HAMO_RET_OK** if successful and an error code otherwise.
+
+If **count** is not **NULL**, then the referenced integer will be increased (meaning you need to initialize
+it yourself) by the number of packets successfully captured and parsed.
 
 To be clear, only packets which are completely internal to the device's network will be captured.  Also, at
 this moment, the capturing of IPv6 packets is not supported.

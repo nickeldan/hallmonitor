@@ -3,11 +3,9 @@
 
 #include <vasq/logger.h>
 
-#define HAMO_VERSION "0.0.1"
+#define HAMO_VERSION "0.1.0"
 
 //#define HAMO_IPV6_SUPPORTED
-
-#define HIDDEN_SYMBOL __attribute__((visibility("hidden")))
 
 #define IPV4_SIZE 4
 #define IPV6_SIZE 16

@@ -5,7 +5,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#include <hamo/capture.h>
+#include <hamo/hamo.h>
 #include <hamo/journal.h>
 #include <hamo/whitelist.h>
 
@@ -142,7 +142,7 @@ main(int argc, char **argv)
 
     VASQ_INFO(hamo_logger, "Beginning packet capturing");
 
-    while ((ret = hamoPcapDispatch(&dispatcher, -1)) == HAMO_RET_OK && !signal_caught) {}
+    while ((ret = hamoPcapDispatch(&dispatcher, -1, NULL)) == HAMO_RET_OK && !signal_caught) {}
 
 done:
     hamoDispatcherFree(&dispatcher);

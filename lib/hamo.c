@@ -6,7 +6,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <hamo/capture.h>
+#include <hamo/hamo.h>
 #include <hamo/whitelist.h>
 
 #include "packet_internal.h"
@@ -244,7 +244,7 @@ error:
 }
 
 int
-hamoPcapDispatch(const hamoDispatcher *dispatcher, int timeout)
+hamoPcapDispatch(const hamoDispatcher *dispatcher, int timeout, unsigned int *count)
 {
     int ret = HAMO_RET_OK;
     struct pollfd *pollers;
@@ -284,7 +284,7 @@ hamoPcapDispatch(const hamoDispatcher *dispatcher, int timeout)
                 pcap_t *handle = *(pcap_t **)ARRAY_GET_ITEM(&dispatcher->handles, k);
 
                 VASQ_DEBUG(hamo_logger, "Handle %zu is ready for reading", k);
-                hamoProcessPacket(handle, &dispatcher->journalers);
+                hamoProcessPacket(handle, &dispatcher->journalers, count);
             }
         }
         break;

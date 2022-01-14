@@ -22,6 +22,7 @@
 
 struct parseCtx {
     const hamoArray *journalers;
+    unsigned int *count;
     int link_type;
 };
 
@@ -160,6 +161,10 @@ parsePacket(u_char *user, const struct pcap_pkthdr *header, const u_char *data)
 
     record.timestamp = header->ts;
 
+    if (ctx->count) {
+        (*ctx->count)++;
+    }
+
     ARRAY_FOR_EACH(ctx->journalers, item)
     {
         const hamoJournaler *journaler = item;
@@ -181,12 +186,13 @@ hamoLinkTypeSupported(int link_type)
 }
 
 void
-hamoProcessPacket(pcap_t *handle, const hamoArray *journalers)
+hamoProcessPacket(pcap_t *handle, const hamoArray *journalers, unsigned int *count)
 {
     struct parseCtx ctx;
 
-    ctx.link_type = pcap_datalink(handle);
     ctx.journalers = journalers;
+    ctx.count = count;
+    ctx.link_type = pcap_datalink(handle);
 
     if (pcap_dispatch(handle, -1, parsePacket, (u_char *)&ctx) == PCAP_ERROR) {
         VASQ_ERROR(hamo_logger, "pcap_dispatch: %s", pcap_geterr(handle));
