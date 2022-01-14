@@ -122,8 +122,13 @@ hamoWhitelistLoad(FILE *file, hamoArray *entries)
     while (fgets(line, sizeof(line), file)) {
         hamoWhitelistEntry entry;
 
-        if (line[0] == '#' || line[0] == '\0') {
-            continue;
+        switch (line[0]) {
+        case '\r':
+        case '\n':
+        case '\0':
+        case '#': continue;
+
+        default: break;
         }
 
         ret = entryParse(line, &entry);

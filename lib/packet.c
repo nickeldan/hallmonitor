@@ -1,4 +1,3 @@
-#include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -29,7 +28,7 @@ struct parseCtx {
 static inline uint16_t
 fetchU16(const uint8_t *src)
 {
-    return (src[0] << 8) + src[1];
+    return (src[0] << 8) | src[1];
 }
 
 static unsigned int
@@ -60,7 +59,7 @@ parseIPv4Header(const uint8_t *header, unsigned int size, hamoRecord *record, un
     unsigned int ihl, total_length;
 
     if (size < IPV4_MIN_HEADER_SIZE) {
-        VASQ_ERROR(hamo_logger, "Not enough bytes captured");
+        VASQ_WARNING(hamo_logger, "Not enough bytes captured");
         return false;
     }
 
@@ -77,7 +76,7 @@ parseIPv4Header(const uint8_t *header, unsigned int size, hamoRecord *record, un
         return false;
     }
     else if (total_length > size) {
-        VASQ_ERROR(hamo_logger, "Not enough bytes captured");
+        VASQ_WARNING(hamo_logger, "Not enough bytes captured");
         return false;
     }
 
