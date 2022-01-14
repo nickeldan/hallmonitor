@@ -96,9 +96,10 @@ Once all of your devices and journalers have been added, you can dispatch the di
     hamoPcapDispatch(const hamoDispatcher *dispatcher, int timeout, unsigned int *count);
 
 This function will wait on all of its registered network devices until at least one of them has packets to
-capture or the timer expires (set **timeout** to -1 to wait indefinitely).  You should be aware that a
-device may be ready for reading but have no packets which satisfy the BPF and thus none of the journalers
-will be called.  This function returns **HAMO_RET_OK** if successful and an error code otherwise.
+capture or the timer (measured in seconds) expires (set **timeout** to -1 to wait indefinitely).  You should
+be aware that a device may be ready for reading but have no packets which satisfy the BPF and thus none of
+the journalers will be called.  This function returns **HAMO_RET_OK** if successful and an error code
+otherwise.
 
 If **count** is not **NULL**, then the referenced integer will be increased (meaning you need to initialize
 it yourself) by the number of packets successfully captured and parsed.
