@@ -218,3 +218,10 @@ defines variables like **VASQ_SHARED_LIBRARY** and **VASQ_STATIC_LIBRARY**.  The
 variable you can set which functions similarly to **HAMO_LIB_DIR**.
 
 To be clear, make.mk will not cause the hamo executable to be built.
+
+Configuration
+-------------
+
+By default, Hall Monitor allocates 512 characters (which includes the null terminator) for the BPF which is
+applied to a capture handle.  You can change this limit at compilation time by setting the
+**HAMO_BPF_MAX_SIZE** preprocessor variable.
