@@ -3,8 +3,8 @@ Hall Monitor
 ============
 
 :Author: Daniel Walker
-
-Version 0.0.1 was release on ???.
+:Version: 0.0.1
+:Date: 2022-01-13
 
 Overview
 ========
@@ -56,6 +56,8 @@ captured.
 
 A journaler can be added to a dispatcher by
 
+.. code-block:: c
+
     hamoArrayAppend(&dispatcher.journalers, &journaler);
 
 This function returns **HAMO_RET_OK** if successful and an error code otherwise.
@@ -93,44 +95,79 @@ A whitelist's entries can be freed by
 
 .. code-block:: c
 
-    hamoWhitelistFree(&whitelist);
+    hamoArrayFree(&whitelist);
 
-There are two ways to add an entry to a whitelist.  The first is by creating an entry individually and
-appending it to the array.  To create an array, use the function
-
-.. code-block:: c
-
-    int
-    hamoWhitelistEntryParse(const char *string, hamoWhitelistEntry *entry);
-
-**string** is a null-terminated string containing three comma-separated fields (no spaces).  The first field
-specifies a source IP address, the second a destination address, and the third a port number.  Any field can
-be left empty but at least one field must be filled.  For example, the string "1.2.3.4,,22" would block any
-packet coming from 1.2.3.4 that has either a source or destination port of 22.
-
-**hamoWhitelistEntryParse** returns **HAMO_RET_OK** if successful and an error code otherwise.  You can free
-an entry's resources by
+There are two ways to add an entry to a whitelist.  The first is by filling out an entry manually and
+appending it to the array.  An entry is defined by
 
 .. code-block:: c
 
-    hamoWhitelistEntryFree(&entry);
+    typedef struct hamoWhitelistEntry {
+        char saddr[INET6_ADDRSTRLEN];
+        char daddr[INET6_ADDRSTRLEN];
+        uint16_t port;
+    } hamoWhitelistEntry;
 
-You can add an entry to a whitelist by
+Each field, if set, represents a feature that a packet must meet in order to be whitelisted.  **saddr** and
+**daddr**, the source and destination IP addresses, respectively, are considered unset if their first
+character **'\0'**.  **port** is considered unset if it is 0.  At least one field must be set.  For example,
+if **saddr** is set to "1.2.3.4" and **port** is set to 8080, then any packet sent from 1.2.3.4 where either
+the source or destination port is 8080 will be whitelisted.
+
+If both **saddr** and **daddr** are set, then they must obviously be of the same IP version.
+
+An entry is appended to the whitelist by
 
 .. code-block:: c
 
     hamoArrayAppend(&whitelist, &entry);
 
-**hamoArrayAppend** returns **HAMO_RET_OK** and an error code otherwise.  If this function succeeds, then you
-must consider **entry** to be no longer usable.  Don't even call **hamoWhitelistEntryFree** on it.
+You can also read whitelist entries from a file and append them in bulk to a whitelist.  Each line of the
+file must contain three comma-separated fields.  The first field specifies the source IP address, the second
+the destination address, and the third the port number.  Fields can be left empty.  For example,
+"1.2.3.4,,8080" is a valid entry.  The line must contain no whitespace other than a line break or carriage
+return.  A line can be commented out by putting a **#** at the beginning.  Empty lines are also acceptable.
 
-You can also add entries to a whitelist from a file by the function
+The file can be loaded into a whitelist by using the **hamoWhitelistLoad** function.  Its signature is
 
 .. code-block:: c
 
     int
     hamoWhitelistLoad(FILE *file, hamoArray *whitelist);
 
-This function returns **HAMO_RET_OK** and an error code otherwise.  The contents of the file must have
-enries on separate lines with no whitespace but line breaks.  You can cause a line to be ignored by putting a
-"#" as the first character of the line.
+It returns **HAMO_RET_OK** if successful and an error code otherwise.
+
+You can free a whitelist by
+
+.. code-block:: c
+
+    hamoArrayFree(&whitelist);
+
+Logging
+-------
+
+Optional logging is provided by the `Vanilla Squad`_ library.  If you want to enable Hall Monitor's logging
+messages, use **vasqLoggerCreate** (see Vanilla Squad's documentation) with **hamo_logger** (provided by
+hamo/definitions.h).
+
+.. _Vanilla Squad: https://github.com/nickeldan/vanilla_squad
+
+Executable
+==========
+
+The build process (see below), in addition to shared and static libraries, also builds an executable called
+"hamo".  Several command-line options are available:
+
+- -d <network_device>: Sets a network device to be monitored.  This option can be used more than once.  If no devices are added, then the "any" device will be used.
+- -w <whitelist_file>: Loads whitelist entries from a file.  This option can be used more than once.
+- -v: Enable verbose logging.
+- -h: Show usage information.
+
+The executable runs **hamoPcapDispatch** on a loop until a **SIGINT** is received.  Captured packets are
+logged to the screen.
+
+Building
+========
+
+Building of the executable and libraries (shared and static) is done with make.  You can pass "debug=yes" to
+the make invocation in order to disable optimization and add debugging symbols.

@@ -135,7 +135,7 @@ main(int argc, char **argv)
             goto done;
         }
     }
-    hamoWhitelistFree(&whitelist_entries);
+    hamoArrayFree(&whitelist_entries);
 
     sigfillset(&action.sa_mask);
     sigaction(SIGINT, &action, NULL);

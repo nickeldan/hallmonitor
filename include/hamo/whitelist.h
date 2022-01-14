@@ -1,37 +1,21 @@
 #ifndef HALLMONITOR_WHITELIST_H
 #define HALLMONITOR_WHITELIST_H
 
+#include <netinet/in.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "array.h"
 #include "definitions.h"
 
 typedef struct hamoWhitelistEntry {
-    char *saddr;
-    char *daddr;
-    uint16_t dport;
-    unsigned int ipv6 : 1;
+    char saddr[INET6_ADDRSTRLEN];
+    char daddr[INET6_ADDRSTRLEN];
+    uint16_t port;
 } hamoWhitelistEntry;
 
-/**
- * @brief Frees any data associated with a whitelist entry.
- *
- * @param entry A pointer to the entry.
- */
-void
-hamoWhitelistEntryFree(hamoWhitelistEntry *entry);
-
-/**
- * @brief Parses a whitelist entry from a string.
- *
- * @param string The string.
- * @param entry A pointer to the entry to be populated.
- *
- * @return HAMO_RET_OK if successful and an error code otherwise.
- */
-int
-hamoWhitelistEntryParse(const char *string, hamoWhitelistEntry *entry);
+#define IPV6_ENTRY(entry) (strchr((entry)->saddr, ':') || strchr((entry)->daddr, ':'))
 
 /**
  * @brief Initializes the whitelist from a file.
@@ -44,13 +28,5 @@ hamoWhitelistEntryParse(const char *string, hamoWhitelistEntry *entry);
  */
 int
 hamoWhitelistLoad(FILE *file, hamoArray *entries);
-
-/**
- * @brief Frees whitelist entries contained in an array.
- *
- * @param entries A pointer to the array.
- */
-void
-hamoWhitelistFree(hamoArray *entries);
 
 #endif  // HALLMONITOR_WHITELIST_H

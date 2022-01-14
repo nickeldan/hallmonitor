@@ -94,7 +94,7 @@ setBpf(pcap_t *handle, const char *device, const hamoArray *whitelist)
             bool already_params = false;
 
 #ifndef HAMO_IPV6_SUPPORTED
-            if (entry->ipv6) {
+            if (IPV6_ENTRY(entry)) {
                 VASQ_WARNING(hamo_logger,
                              "Skipping whitelist entry because IPv6 addresses are not currently supported");
                 continue;
@@ -103,12 +103,12 @@ setBpf(pcap_t *handle, const char *device, const hamoArray *whitelist)
 
             BUFFER_WRITE_CHECK(" and not (");
 
-            if (entry->saddr) {
+            if (entry->saddr[0]) {
                 BUFFER_WRITE_CHECK("src host %s", entry->saddr);
                 already_params = true;
             }
 
-            if (entry->daddr) {
+            if (entry->daddr[0]) {
                 if (already_params) {
                     BUFFER_WRITE_CHECK(" and ");
                 }
@@ -119,12 +119,12 @@ setBpf(pcap_t *handle, const char *device, const hamoArray *whitelist)
                 BUFFER_WRITE_CHECK("dst host %s", entry->saddr);
             }
 
-            if (entry->dport != 0) {
+            if (entry->port != 0) {
                 if (already_params) {
                     BUFFER_WRITE_CHECK(" and ");
                 }
 
-                BUFFER_WRITE_CHECK("port %u", entry->dport);
+                BUFFER_WRITE_CHECK("port %u", entry->port);
             }
 
             BUFFER_WRITE_CHECK(")");
