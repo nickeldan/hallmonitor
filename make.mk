@@ -3,8 +3,9 @@ include $(VASQ_DIR)/make.mk
 
 HAMO_INCLUDE_FLAGS := $(patsubst %,-I%,$(VASQ_INCLUDE_DIR) $(HAMO_DIR)/include)
 
-HAMO_SHARED_LIBRARY := $(HAMO_DIR)/libhallmonitor.so
-HAMO_STATIC_LIBRARY := $(HAMO_DIR)/libhallmonitor.a
+HAMO_LIB_DIR ?= $(HAMO_DIR)
+HAMO_SHARED_LIBRARY := $(HAMO_LIB_DIR)/libhallmonitor.so
+HAMO_STATIC_LIBRARY := $(HAMO_LIB_DIR)/libhallmonitor.a
 
 HAMO_SOURCE_FILES := $(wildcard $(HAMO_DIR)/lib/*.c)
 HAMO_OBJECT_FILES := $(patsubst %.c,%.o,$(HAMO_SOURCE_FILES))

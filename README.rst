@@ -50,9 +50,28 @@ Journaling
 ----------
 
 Once a packet is captured and parsed, the dispatcher has to know what to do with it.  To that end, you must
-register at least one **hamoJournaler** with the dispatcher (see hamo/journal.h for the definition).  One of
-the fields of the journaler is a pointer to a function which will be called for every packet that is
-captured.
+register at least one **hamoJournaler** with the dispatcher.  Its definition (provided by hamo/journal.h) is
+
+.. code-block:: c
+
+    typedef struct hamoJournaler {
+        void (*func)(void *, const hamoRecord *);
+        voido *user;
+    } hamoJournaler;
+
+where **hamoRecord** is defined by the same file as
+
+.. code-block:: c
+
+    typedef struct hamoRecord {
+        struct timeval timestamp;
+        uint16_t sport;
+        uint16_t dport;
+        uint8_t source_address[16];
+        uint8_t destination_address[16];
+        uint8_t tcp_flags;
+        unsigned int ipv6 : 1;
+    } hamoRecord;
 
 A journaler can be added to a dispatcher by
 
@@ -61,6 +80,9 @@ A journaler can be added to a dispatcher by
     hamoArrayAppend(&dispatcher.journalers, &journaler);
 
 This function returns **HAMO_RET_OK** if successful and an error code otherwise.
+
+For each packet that is captured and parsed, a **hamoRecord** will be created and passed to each registered
+journaler's **func** field with the **user** field passed as the first argument.
 
 Listening for packets
 ---------------------
@@ -171,3 +193,28 @@ Building
 
 Building of the executable and libraries (shared and static) is done with make.  You can pass "debug=yes" to
 the make invocation in order to disable optimization and add debugging symbols.
+
+You can also include the Hall Monitor library in a larger project by including make.mk.  Before doing so,
+however, the **HAMO_DIR** variable must be set to the location of the Hall Monitor directory.  You can also
+tell make where to place the shared and static libraries by defining the **HAMO_LIB_DIR** variable (defaults
+to **HAMO_DIR**).
+
+make.mk adds a target to the variable **CLEAN_TARGETS**.  This is so that implementing
+
+.. code-block:: make
+
+    clean: $(CLEAN_TARGETS)
+        ...
+
+in your project's Makefile will cause Hall Monitor to be cleaned up as well.  **CLEAN_TARGETS** should be
+added to **.PHONY** if you're using GNU make.
+
+make.mk defines the variables **HAMO_SHARED_LIBRARY** and **HAMO_STATIC_LIBRARY** which contain the paths of
+the specified libraries.  It also defines the **HAMO_INCLUDE_FLAGS** variable which contains all of the
+**-I** directives to be added to **CFLAGS**.
+
+Since Hall Monitor has a dependency upon Vanilla Squad, make.mk includes Vanilla Squad's make.mk.  This also
+defines variables like **VASQ_SHARED_LIBRARY** and **VASQ_STATIC_LIBRARY**.  There is also a **VASQ_LIB_DIR**
+variable you can set which functions similarly to **HAMO_LIB_DIR**.
+
+To be clear, make.mk will not cause the hamo executable to be built.
