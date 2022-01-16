@@ -97,7 +97,7 @@ entryParse(const char *string, hamoWhitelistEntry *entry)
         }
         entry->port = value;
     }
-    else if (!entry->saddr && !entry->daddr) {
+    else if (entry->saddr[0] == '\0' && entry->daddr[0] == '\0') {
         VASQ_ERROR(hamo_logger, "No whitelist information specified");
         return HAMO_RET_BAD_WHITELIST;
     }

@@ -2,7 +2,6 @@
 #include <errno.h>
 #include <stdarg.h>
 #include <stdbool.h>
-#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -53,10 +52,6 @@ setBpf(pcap_t *handle, const char *device, const hamoArray *whitelist)
     } while (0)
 
     len = strnlen(bpf, sizeof(bpf));
-    if (len >= sizeof(bpf)) {
-        VASQ_CRITICAL(hamo_logger, "BPF buffer is too small");
-        return HAMO_RET_OVERFLOW;
-    }
 
 #ifdef HAMO_IPV6_SUPPORTED
 #error "IPv6 is not currently supported."
@@ -91,6 +86,7 @@ setBpf(pcap_t *handle, const char *device, const hamoArray *whitelist)
         ARRAY_FOR_EACH(whitelist, item)
         {
             const hamoWhitelistEntry *entry = item;
+            unsigned int num_fields = 0;
             bool already_params = false;
 
 #ifndef HAMO_IPV6_SUPPORTED
@@ -101,7 +97,30 @@ setBpf(pcap_t *handle, const char *device, const hamoArray *whitelist)
             }
 #endif
 
-            BUFFER_WRITE_CHECK(" and not (");
+            if (entry->saddr[0] != '\0') {
+                num_fields++;
+            }
+            if (entry->daddr[0] != '\0') {
+                num_fields++;
+            }
+            if (entry->port != 0) {
+                num_fields++;
+            }
+
+            if (num_fields == 0) {
+                continue;
+            }
+
+            if (entry->saddr[0] != '\0' && entry->daddr[0] != '\0' &&
+                !!strchr(entry->saddr, ':') != !!strchr(entry->daddr, ':')) {
+                VASQ_WARNING(hamo_logger, "Skipping whitelist entry that contains conflicting IP versions");
+                continue;
+            }
+
+            BUFFER_WRITE_CHECK(" and not ");
+            if (num_fields > 1) {
+                BUFFER_WRITE_CHECK("(");
+            }
 
             if (entry->saddr[0]) {
                 BUFFER_WRITE_CHECK("src host %s", entry->saddr);
@@ -127,7 +146,9 @@ setBpf(pcap_t *handle, const char *device, const hamoArray *whitelist)
                 BUFFER_WRITE_CHECK("port %u", entry->port);
             }
 
-            BUFFER_WRITE_CHECK(")");
+            if (num_fields > 1) {
+                BUFFER_WRITE_CHECK(")");
+            }
         }
     }
 

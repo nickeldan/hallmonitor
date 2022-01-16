@@ -3,8 +3,8 @@ Hall Monitor
 ============
 
 :Author: Daniel Walker
-:Version: 0.1.1
-:Date: 2022-01-14
+:Version: 0.1.2
+:Date: 2022-01-15
 
 Overview
 ========
@@ -110,14 +110,14 @@ this moment, the capturing of IPv6 packets is not supported.
 Whitelisting
 ------------
 
-You can whitelist certain types of events.  This alters the BPF so that the journalers won't be called on
+You can whitelist certain types of packets.  This alters the BPF so that the journalers won't be called on
 such packets.  A whitelist can be created by including hamo/whitelist.h and declaring
 
 .. code-block:: c
 
     hamoArray whitelist = HAMO_ARRAY(hamoWhitelistEntry);
 
-A whitelist's entries can be freed by
+A whitelist can be cleared by
 
 .. code-block:: c
 

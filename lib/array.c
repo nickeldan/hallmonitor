@@ -44,6 +44,7 @@ hamoArrayFree(hamoArray *array)
 {
     if (array) {
         free(array->data);
-        *array = (hamoArray){0};
+        array->data = NULL;
+        array->length = array->capacity = 0;
     }
 }

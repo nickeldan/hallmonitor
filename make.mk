@@ -9,15 +9,15 @@ HAMO_STATIC_LIBRARY := $(HAMO_LIB_DIR)/libhallmonitor.a
 
 HAMO_SOURCE_FILES := $(wildcard $(HAMO_DIR)/lib/*.c)
 HAMO_OBJECT_FILES := $(patsubst %.c,%.o,$(HAMO_SOURCE_FILES))
+
 HAMO_HEADER_FILES := $(wildcard $(HAMO_DIR)/include/hamo/*.h)
-HAMO_EXTERNAL_HEADER_FILES := $(shell find $(VASQ_INCLUDE_DIR) -name '*.h')
 
 HAMO_DEPS_FILE := $(HAMO_DIR)/deps.mk
 DEPS_FILES += $(HAMO_DEPS_FILE)
 
 ifneq ($(MAKECMDGOALS),clean)
 
-$(HAMO_DEPS_FILE): $(HAMO_SOURCE_FILES) $(HAMO_HEADER_FILES) $(HAMO_EXTERNAL_HEADER_FILES)
+$(HAMO_DEPS_FILE): $(HAMO_SOURCE_FILES) $(HAMO_HEADER_FILES) $(VASQ_HEADER_FILES)
 	rm -f $@
 	for file in $(HAMO_SOURCE_FILES); do \
 	    echo "$(HAMO_DIR)/lib/`$(CC) $(CFLAGS) $(HAMO_INCLUDE_FLAGS) -MM $$file`" >> $@ && \
