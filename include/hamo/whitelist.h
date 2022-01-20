@@ -10,9 +10,9 @@
 #include "definitions.h"
 
 typedef struct hamoWhitelistEntry {
+    uint16_t port;
     char saddr[INET6_ADDRSTRLEN];
     char daddr[INET6_ADDRSTRLEN];
-    uint16_t port;
 } hamoWhitelistEntry;
 
 #define IPV6_ENTRY(entry) (strchr((entry)->saddr, ':') || strchr((entry)->daddr, ':'))

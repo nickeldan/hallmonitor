@@ -129,9 +129,9 @@ appending it to the array.  An entry is defined by
 .. code-block:: c
 
     typedef struct hamoWhitelistEntry {
+        uint16_t port;
         char saddr[INET6_ADDRSTRLEN];
         char daddr[INET6_ADDRSTRLEN];
-        uint16_t port;
     } hamoWhitelistEntry;
 
 Each field, if set, represents a feature that a packet must meet in order to be whitelisted.  **saddr** and
