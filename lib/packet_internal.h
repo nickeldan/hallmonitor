@@ -21,7 +21,7 @@ bool HIDDEN_SYMBOL
 hamoLinkTypeSupported(int link_type);
 
 /**
- * @brief Processes at most one packet and writes it to the journal.
+ * @brief Processes all available packets and writes them to the journal.
  *
  * @param handle The PCAP handle to use.
  * @param journalers An array of hamoJournalers (see hamo/journal.h) to apply to any captured packets.
@@ -29,6 +29,6 @@ hamoLinkTypeSupported(int link_type);
  * successfully parsed.
  */
 void HIDDEN_SYMBOL
-hamoProcessPacket(pcap_t *handle, const hamoArray *journalers, unsigned int *count);
+hamoProcessPackets(pcap_t *handle, const hamoArray *journalers, unsigned int *count);
 
 #endif  // HALLMONITOR_PACKET_INTERNAL_H

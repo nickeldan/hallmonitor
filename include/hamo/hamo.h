@@ -34,7 +34,7 @@ hamoDispatcherFree(hamoDispatcher *dispatcher);
  * @return HAMO_RET_OK if successful and an error code otherwise.
  */
 int
-hamoPcapAdd(hamoDispatcher *dispatcher, const char *device, const hamoArray *whitelist);
+hamoDeviceAdd(hamoDispatcher *dispatcher, const char *device, const hamoArray *whitelist);
 
 /**
  * @brief Checks an array of packet capturing handles, processing at most one packet from each one.
@@ -48,6 +48,6 @@ hamoPcapAdd(hamoDispatcher *dispatcher, const char *device, const hamoArray *whi
  * @return HAMO_RET_OK if sucessful and an error code otherwise.
  */
 int
-hamoPcapDispatch(const hamoDispatcher *dispatcher, int timeout, unsigned int *count);
+hamoCaptureDispatch(const hamoDispatcher *dispatcher, int timeout, unsigned int *count);
 
 #endif  // HALLMONITOR_HAMO_H

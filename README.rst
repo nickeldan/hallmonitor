@@ -31,20 +31,20 @@ Its resources can be released by
 Monitoring network devices
 --------------------------
 
-You can add monitoring of a network device to a dispatcher with the **hamoPcapAdd** function.  Its signature
-is
+You can add monitoring of a network device to a dispatcher with the **hamoDeviceAdd** function.  Its
+signature is
 
 .. code-block:: c
 
     int
-    hamoPcapAdd(hamoDispatcher *dispatcher, const char *device, const hamoArray *whitelist);
+    hamoDeviceAdd(hamoDispatcher *dispatcher, const char *device, const hamoArray *whitelist);
 
 We will discuss whitelisting later.  For now, you can set it to **NULL**.  For this function, **device**
 refers to a network device, such as "any" or "en0".  The function returns **HAMO_RET_OK** if successful and
 an error code otherwise (defined in hamo/definitions.h).  At the moment, monitoring of a network device is
 only supported if its link-layer protocol is either Ethernet or the Linux cooked header protocol.
 
-**hamoPcapAdd** may be called repeatedly in order to add multiple devices to the dispatcher.
+**hamoDeviceAdd** may be called repeatedly in order to add multiple devices to the dispatcher.
 
 Journaling
 ----------
@@ -88,12 +88,12 @@ Listening for packets
 ---------------------
 
 Once all of your devices and journalers have been added, you can dispatch the dispatcher via the
-**hamoPcapDispatch** function.  Its signature is
+**hamoCaptureDispatch** function.  Its signature is
 
 .. code-block:: c
 
     int
-    hamoPcapDispatch(const hamoDispatcher *dispatcher, int timeout, unsigned int *count);
+    hamoCaptureDispatch(const hamoDispatcher *dispatcher, int timeout, unsigned int *count);
 
 This function will wait on all of its registered network devices until at least one of them has packets to
 capture or the timer (measured in seconds) expires (set **timeout** to -1 to wait indefinitely).  You should
@@ -189,7 +189,7 @@ The build process (see below), in addition to shared and static libraries, also 
 - -v: Enable verbose logging.
 - -h: Show usage information.
 
-The executable runs **hamoPcapDispatch** on a loop until a **SIGINT** is received.  Captured packets are
+The executable runs **hamoCaptureDispatch** on a loop until a **SIGINT** is received.  Captured packets are
 logged to the screen.
 
 Building

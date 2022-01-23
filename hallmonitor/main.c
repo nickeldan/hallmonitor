@@ -122,7 +122,7 @@ main(int argc, char **argv)
     if (devices.length > 0) {
         ARRAY_FOR_EACH(&devices, item)
         {
-            ret = hamoPcapAdd(&dispatcher, *(const char **)item, &whitelist_entries);
+            ret = hamoDeviceAdd(&dispatcher, *(const char **)item, &whitelist_entries);
             if (ret != HAMO_RET_OK) {
                 goto done;
             }
@@ -130,7 +130,7 @@ main(int argc, char **argv)
         hamoArrayFree(&devices);
     }
     else {
-        ret = hamoPcapAdd(&dispatcher, "any", &whitelist_entries);
+        ret = hamoDeviceAdd(&dispatcher, "any", &whitelist_entries);
         if (ret != HAMO_RET_OK) {
             goto done;
         }
@@ -142,7 +142,7 @@ main(int argc, char **argv)
 
     VASQ_INFO(hamo_logger, "Beginning packet capturing");
 
-    while ((ret = hamoPcapDispatch(&dispatcher, -1, NULL)) == HAMO_RET_OK && !signal_caught) {}
+    while ((ret = hamoCaptureDispatch(&dispatcher, -1, NULL)) == HAMO_RET_OK && !signal_caught) {}
 
 done:
     hamoDispatcherFree(&dispatcher);

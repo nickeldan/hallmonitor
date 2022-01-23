@@ -185,7 +185,7 @@ hamoLinkTypeSupported(int link_type)
 }
 
 void
-hamoProcessPacket(pcap_t *handle, const hamoArray *journalers, unsigned int *count)
+hamoProcessPackets(pcap_t *handle, const hamoArray *journalers, unsigned int *count)
 {
     struct parseCtx ctx;
 

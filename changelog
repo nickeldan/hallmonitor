@@ -1,3 +1,7 @@
+0.2.0:
+    - Renamed hamoPcapAdd to hamoDeviceAdd.
+    - Renamed hamoPcapDispatch to hamoCaptureDispatch.
+
 0.1.2:
     - Whitelist entries are now better validated.
 

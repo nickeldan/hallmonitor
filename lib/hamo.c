@@ -16,24 +16,6 @@
 
 #define HAMO_MAX_BYTES_CAPTURED 512
 
-static bool
-bufferWriteCheck(unsigned int line_no, char *buffer, size_t *len, const char *format, ...)
-{
-    va_list args;
-
-    va_start(args, format);
-    *len += vsnprintf(buffer + *len, HAMO_BPF_MAX_SIZE - *len, format, args);
-    va_end(args);
-
-    if (*len >= HAMO_BPF_MAX_SIZE) {
-        vasqLogStatement(hamo_logger, VASQ_LL_ERROR, __FILE__, "setBpf", line_no,
-                         "BPF is too long (%zu characters at least)", len);
-        return false;
-    }
-
-    return true;
-}
-
 static int
 setBpf(pcap_t *handle, const char *device, const hamoArray *whitelist)
 {
@@ -44,11 +26,12 @@ setBpf(pcap_t *handle, const char *device, const hamoArray *whitelist)
     char errbuf[PCAP_ERRBUF_SIZE], bpf[HAMO_BPF_MAX_SIZE] = "tcp[tcpflags] & (tcp-syn) != 0";
     struct bpf_program program;
 
-#define BUFFER_WRITE_CHECK(format, ...)                                      \
-    do {                                                                     \
-        if (!bufferWriteCheck(__LINE__, bpf, &len, format, ##__VA_ARGS__)) { \
-            return HAMO_RET_OVERFLOW;                                        \
-        }                                                                    \
+#define BUFFER_WRITE_CHECK(format, ...)                                       \
+    do {                                                                      \
+        len += snprintf(bpf + len, sizeof(bpf) - len, format, ##__VA_ARGS__); \
+        if (len >= sizeof(bpf)) {                                             \
+            goto overflow_error;                                              \
+        }                                                                     \
     } while (0)
 
     len = strnlen(bpf, sizeof(bpf));
@@ -170,6 +153,11 @@ setBpf(pcap_t *handle, const char *device, const hamoArray *whitelist)
     }
 
     return ret;
+
+overflow_error:
+
+    VASQ_ERROR(hamo_logger, "BPF is too long (%zu characters at least)", len);
+    return HAMO_RET_OVERFLOW;
 }
 
 #undef BUFFER_WRITE_CHECK
@@ -194,7 +182,7 @@ hamoDispatcherFree(hamoDispatcher *dispatcher)
 }
 
 int
-hamoPcapAdd(hamoDispatcher *dispatcher, const char *device, const hamoArray *whitelist)
+hamoDeviceAdd(hamoDispatcher *dispatcher, const char *device, const hamoArray *whitelist)
 {
     int ret, link_type;
     char errbuf[PCAP_ERRBUF_SIZE];
@@ -265,7 +253,7 @@ error:
 }
 
 int
-hamoPcapDispatch(const hamoDispatcher *dispatcher, int timeout, unsigned int *count)
+hamoCaptureDispatch(const hamoDispatcher *dispatcher, int timeout, unsigned int *count)
 {
     int ret = HAMO_RET_OK;
     struct pollfd *pollers;
@@ -305,7 +293,7 @@ hamoPcapDispatch(const hamoDispatcher *dispatcher, int timeout, unsigned int *co
                 pcap_t *handle = *(pcap_t **)ARRAY_GET_ITEM(&dispatcher->handles, k);
 
                 VASQ_DEBUG(hamo_logger, "Handle %zu is ready for reading", k);
-                hamoProcessPacket(handle, &dispatcher->journalers, count);
+                hamoProcessPackets(handle, &dispatcher->journalers, count);
             }
         }
         break;
