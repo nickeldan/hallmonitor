@@ -3,8 +3,8 @@
 
 #include <hamo/array.h>
 
-#define INITIAL_CAPACITY         5
-#define CAPACITY_EXPANSION(size) (((size)*5) / 4)
+#define INITIAL_CAPACITY         1
+#define CAPACITY_EXPANSION(size) ((size) + 2)
 
 int
 hamoArrayAppend(hamoArray *array, const void *item)
@@ -21,7 +21,7 @@ hamoArrayAppend(hamoArray *array, const void *item)
 
     if (array->length == array->capacity) {
         size_t new_capacity =
-            (array->capacity == 0) ? INITIAL_CAPACITY : CAPACITY_EXPANSION(array->capacity + 1);
+            (array->capacity == 0) ? INITIAL_CAPACITY : CAPACITY_EXPANSION(array->capacity);
         void *success;
 
         success = VASQ_REALLOC(hamo_logger, array->data, new_capacity * array->item_size);
