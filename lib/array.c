@@ -42,9 +42,11 @@ hamoArrayAppend(hamoArray *array, const void *item)
 void
 hamoArrayFree(hamoArray *array)
 {
-    if (array) {
-        free(array->data);
-        array->data = NULL;
-        array->length = array->capacity = 0;
+    if (!array) {
+        return;
     }
+
+    free(array->data);
+    array->data = NULL;
+    array->length = array->capacity = 0;
 }

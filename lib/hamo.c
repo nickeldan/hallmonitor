@@ -219,7 +219,7 @@ hamoDeviceAdd(hamoDispatcher *dispatcher, const char *device, const hamoArray *w
 
     poller.fd = pcap_get_selectable_fd(handle);
     if (poller.fd == PCAP_ERROR) {
-        VASQ_ERROR(hamo_logger, "No selectable file descriptor associated with PCAP handle");
+        VASQ_ERROR(hamo_logger, "No selectable file descriptor associated with packet capture handle");
         ret = HAMO_RET_PCAP_NO_FD;
         goto error;
     }
