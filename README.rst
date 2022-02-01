@@ -226,6 +226,6 @@ To be clear, make.mk will not cause the hamo executable to be built.
 Configuration
 -------------
 
-By default, Hall Monitor allocates 512 characters (which includes the null terminator) for the BPF which is
+By default, Hall Monitor allocates 4096 characters (which includes the null terminator) for the BPF which is
 applied to a capture handle.  You can change this limit at compilation time by setting the
 **HAMO_BPF_MAX_SIZE** preprocessor variable.

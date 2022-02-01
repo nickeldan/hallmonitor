@@ -1,3 +1,6 @@
+?.?.?:
+    - Increased the default value of HAMO_BPF_MAX_SIZE to 4096.
+
 0.3.0:
     - Changed the array growth parameters for slower growth.
     - Fixed the BPF to proper filter both the SYN as well as the SYN-ACK packets.

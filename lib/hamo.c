@@ -11,7 +11,7 @@
 #include "packet_internal.h"
 
 #ifndef HAMO_BPF_MAX_SIZE
-#define HAMO_BPF_MAX_SIZE 1024
+#define HAMO_BPF_MAX_SIZE 4096
 #endif
 
 #define HAMO_MAX_BYTES_CAPTURED 512
@@ -126,7 +126,7 @@ setBpf(pcap_t *handle, const char *device, const hamoArray *whitelist)
         }
     }
 
-    VASQ_DEBUG(hamo_logger, "BPF: %s", bpf);
+    VASQ_DEBUG(hamo_logger, "BPF (%zu characters): %s", strnlen(bpf, sizeof(bpf)), bpf);
 
     if (pcap_compile(handle, &program, bpf, true, 0) != 0) {
         VASQ_ERROR(hamo_logger, "pcap_compile: %s", pcap_geterr(handle));
