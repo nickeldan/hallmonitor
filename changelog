@@ -1,5 +1,6 @@
-?.?.?:
+0.3.0:
     - Changed the array growth parameters for slower growth.
+    - Fixed the BPF to proper filter both the SYN as well as the SYN-ACK packets.
 
 0.2.0:
     - Renamed hamoPcapAdd to hamoDeviceAdd.
