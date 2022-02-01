@@ -177,7 +177,9 @@ hamoDeviceAdd(hamoDispatcher *dispatcher, const char *device, const hamoArray *w
 {
     int ret, link_type;
     char errbuf[PCAP_ERRBUF_SIZE];
+#ifndef VASQ_NO_LOGGING
     const char *link_type_name;
+#endif
     pcap_t *handle;
     struct pollfd poller;
 
@@ -195,7 +197,9 @@ hamoDeviceAdd(hamoDispatcher *dispatcher, const char *device, const hamoArray *w
     }
 
     link_type = pcap_datalink(handle);
+#ifndef VASQ_NO_LOGGING
     link_type_name = pcap_datalink_val_to_name(link_type);
+#endif
     if (!hamoLinkTypeSupported(link_type)) {
         VASQ_ERROR(hamo_logger, "Unsupported data link type: %s", link_type_name);
         ret = HAMO_RET_PCAP_DATALINK_UNSUPPORTED;

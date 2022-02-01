@@ -3,7 +3,7 @@
 
 #include <vasq/logger.h>
 
-#define HAMO_VERSION "0.3.0"
+#define HAMO_VERSION "0.4.0"
 
 //#define HAMO_IPV6_SUPPORTED
 
@@ -29,6 +29,8 @@ enum hamoRetValue {
     HAMO_RET_POLL_FAILED,
 };
 
+#ifndef VASQ_NO_LOGGING
 extern vasqLogger *hamo_logger;
+#endif
 
 #endif

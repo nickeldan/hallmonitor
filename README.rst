@@ -3,7 +3,7 @@ Hall Monitor
 ============
 
 :Author: Daniel Walker
-:Version: 0.3.0
+:Version: 0.4.0
 :Date: 2022-01-31
 
 Overview
@@ -177,6 +177,9 @@ messages, use **vasqLoggerCreate** (see Vanilla Squad's documentation) with **ha
 hamo/definitions.h).
 
 .. _Vanilla Squad: https://github.com/nickeldan/vanilla_squad
+
+You can also remove all of the logging code from the source at preprocessor time by definining the
+preprocessor variable **VASQ_NO_LOGGING**.
 
 Executable
 ==========

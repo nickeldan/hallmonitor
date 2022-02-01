@@ -14,7 +14,13 @@ static volatile sig_atomic_t signal_caught;
 static void
 usage(const char *exec)
 {
-    printf("Usage: %s [-d <network device>]* [-w <whitelist file>]* [-v] [-h]\n", exec);
+    printf(
+        "Usage: %s [-d <network device>]* [-w <whitelist file>]*"
+#ifndef VASQ_NO_LOGGING
+        " [-v]"
+#endif
+        " [-h]\n",
+        exec);
 }
 
 static void
@@ -38,12 +44,22 @@ printRecord(void *user, const hamoRecord *record)
     packet_type = (record->ack_flag) ? "SYN-ACK" : "SYN";
 
     if (record->ipv6) {
+#ifdef VASQ_NO_LOGGING
+        printf("%s packet sent from [%s]:%u to [%s]:%u\n", packet_type, src_buffer, record->sport,
+               dst_buffer, record->dport);
+#else
         VASQ_INFO(hamo_logger, "%s packet sent from [%s]:%u to [%s]:%u", packet_type, src_buffer,
                   record->sport, dst_buffer, record->dport);
+#endif
     }
     else {
+#ifdef VASQ_NO_LOGGING
+        printf("%s packet sent from %s:%u to %s:%u\n", packet_type, src_buffer, record->sport, dst_buffer,
+               record->dport);
+#else
         VASQ_INFO(hamo_logger, "%s packet sent from %s:%u to %s:%u", packet_type, src_buffer, record->sport,
                   dst_buffer, record->dport);
+#endif
     }
 }
 
@@ -51,8 +67,6 @@ int
 main(int argc, char **argv)
 {
     int ret, option;
-    vasqLogLevel_t level = VASQ_LL_INFO;
-    const char *format_string = "%t [%L]%_ %M\n";
     void *item;
     struct sigaction action = {.sa_handler = signalHandler};
     hamoArray devices = HAMO_ARRAY(const char *);
@@ -60,7 +74,18 @@ main(int argc, char **argv)
     hamoDispatcher dispatcher = HAMO_DISPATCHER_INIT;
     hamoJournaler journaler = {.func = printRecord, .user = NULL};
 
-    while ((option = getopt(argc, argv, "d:w:vh")) != -1) {
+#ifdef VASQ_NO_LOGGING
+
+#define GETOPT_FORMAT "d:w:h"
+
+#else
+
+#define GETOPT_FORMAT "d:w:vh"
+
+    vasqLogLevel_t level = VASQ_LL_INFO;
+    const char *format_string = "%t [%L]%_ %M\n";
+
+    while ((option = getopt(argc, argv, GETOPT_FORMAT)) != -1) {
         switch (option) {
         case 'v':
             level = VASQ_LL_DEBUG;
@@ -76,6 +101,8 @@ main(int argc, char **argv)
         }
     }
 
+    optind = 1;
+
     ret = vasqLoggerCreate(STDOUT_FILENO, level, format_string, NULL, &hamo_logger);
     if (ret != VASQ_RET_OK) {
         fprintf(stderr, "vasqLoggerCreate: %s\n", vasqErrorString(ret));
@@ -84,8 +111,9 @@ main(int argc, char **argv)
 
     VASQ_INFO(hamo_logger, "Running Hall Monitor %s", HAMO_VERSION);
 
-    optind = 1;
-    while ((option = getopt(argc, argv, "d:w:vh")) != -1) {
+#endif  // VASQ_NO_LOGGING
+
+    while ((option = getopt(argc, argv, GETOPT_FORMAT)) != -1) {
         switch (option) {
             FILE *f;
 
@@ -109,6 +137,20 @@ main(int argc, char **argv)
                 goto done;
             }
             break;
+
+#ifdef VASQ_NO_LOGGING
+
+        case 'h':
+            usage(argv[0]);
+            ret = HAMO_RET_OK;
+            goto done;
+
+        default:
+            usage(argv[0]);
+            ret = HAMO_RET_USAGE;
+            goto done;
+
+#endif  // VASQ_NO_LOGGING
         }
     }
 
