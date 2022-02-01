@@ -126,7 +126,7 @@ setBpf(pcap_t *handle, const char *device, const hamoArray *whitelist)
         }
     }
 
-    VASQ_DEBUG(hamo_logger, "BPF (%zu characters): %s", strnlen(bpf, sizeof(bpf)), bpf);
+    VASQ_DEBUG(hamo_logger, "BPF: %s", bpf);
 
     if (pcap_compile(handle, &program, bpf, true, 0) != 0) {
         VASQ_ERROR(hamo_logger, "pcap_compile: %s", pcap_geterr(handle));
