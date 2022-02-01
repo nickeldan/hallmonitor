@@ -18,6 +18,7 @@
 #define TCP_DPORT_OFFSET    2
 #define TCP_FLAGS_OFFSET    13
 #define TCP_SYN_FLAG        0x02
+#define TCP_ACK_FLAG        0x10
 
 struct parseCtx {
     const hamoArray *journalers;
@@ -103,7 +104,7 @@ parseTCPHeader(const uint8_t *header, unsigned int size, hamoRecord *record)
         VASQ_ERROR(hamo_logger, "We've somehow captured a non-SYN TCP packet despite our BPF");
         return false;
     }
-    record->tcp_flags = header[TCP_FLAGS_OFFSET];
+    record->ack_flag = ((header[TCP_FLAGS_OFFSET] & TCP_ACK_FLAG) != 0);
 
     record->sport = fetchU16(header + TCP_SPORT_OFFSET);
     record->dport = fetchU16(header + TCP_DPORT_OFFSET);

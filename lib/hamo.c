@@ -64,13 +64,16 @@ setBpf(pcap_t *handle, const char *device, const hamoArray *whitelist)
 #undef GET_BYTE
 
     if (whitelist) {
+        bool already_params = false;
         void *item;
 
         ARRAY_FOR_EACH(whitelist, item)
         {
             const hamoWhitelistEntry *entry = item;
-            unsigned int num_fields = 0;
-            bool already_params = false;
+
+            if (entry->saddr[0] == '\0' && entry->daddr[0] == '\0' && entry->port == 0) {
+                continue;
+            }
 
 #ifndef HAMO_IPV6_SUPPORTED
             if (IPV6_ENTRY(entry)) {
@@ -78,60 +81,48 @@ setBpf(pcap_t *handle, const char *device, const hamoArray *whitelist)
                              "Skipping whitelist entry because IPv6 addresses are not currently supported");
                 continue;
             }
-#endif
-
-            if (entry->saddr[0] != '\0') {
-                num_fields++;
-            }
-            if (entry->daddr[0] != '\0') {
-                num_fields++;
-            }
-            if (entry->port != 0) {
-                num_fields++;
-            }
-
-            if (num_fields == 0) {
-                continue;
-            }
-
+#else
             if (entry->saddr[0] != '\0' && entry->daddr[0] != '\0' &&
                 !!strchr(entry->saddr, ':') != !!strchr(entry->daddr, ':')) {
                 VASQ_WARNING(hamo_logger, "Skipping whitelist entry that contains conflicting IP versions");
                 continue;
             }
+#endif
 
-            BUFFER_WRITE_CHECK(" and not ");
-            if (num_fields > 1) {
-                BUFFER_WRITE_CHECK("(");
+            if (already_params) {
+                BUFFER_WRITE_CHECK(" or (");
             }
-
-            if (entry->saddr[0]) {
-                BUFFER_WRITE_CHECK("src host %s", entry->saddr);
+            else {
+                BUFFER_WRITE_CHECK(" and not ((");
                 already_params = true;
             }
 
-            if (entry->daddr[0]) {
-                if (already_params) {
-                    BUFFER_WRITE_CHECK(" and ");
-                }
-                else {
-                    already_params = true;
-                }
-
-                BUFFER_WRITE_CHECK("dst host %s", entry->saddr);
+            BUFFER_WRITE_CHECK("tcp[tcpflags] & (tcp-ack) == 0");
+            if (entry->saddr[0] != '\0') {
+                BUFFER_WRITE_CHECK(" and src host %s", entry->saddr);
             }
-
+            if (entry->daddr[0] != '\0') {
+                BUFFER_WRITE_CHECK(" and dst host %s", entry->daddr);
+            }
             if (entry->port != 0) {
-                if (already_params) {
-                    BUFFER_WRITE_CHECK(" and ");
-                }
-
-                BUFFER_WRITE_CHECK("port %u", entry->port);
+                BUFFER_WRITE_CHECK(" and dst port %u", entry->port);
             }
 
-            if (num_fields > 1) {
-                BUFFER_WRITE_CHECK(")");
+            BUFFER_WRITE_CHECK(") or (tcp[tcpflags] & (tcp-ack) != 0");
+            if (entry->saddr[0] != '\0') {
+                BUFFER_WRITE_CHECK(" and dst host %s", entry->saddr);
             }
+            if (entry->daddr[0] != '\0') {
+                BUFFER_WRITE_CHECK(" and src host %s", entry->daddr);
+            }
+            if (entry->port != 0) {
+                BUFFER_WRITE_CHECK(" and src port %u", entry->port);
+            }
+            BUFFER_WRITE_CHECK(")");
+        }
+
+        if (already_params) {
+            BUFFER_WRITE_CHECK(")");
         }
     }
 

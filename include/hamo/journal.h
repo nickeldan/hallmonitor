@@ -12,8 +12,8 @@ typedef struct hamoRecord {
     uint16_t dport;
     uint8_t source_address[IPV6_SIZE];
     uint8_t destination_address[IPV6_SIZE];
-    uint8_t tcp_flags;
     unsigned int ipv6 : 1;
+    unsigned int ack_flag : 1;
 } hamoRecord;
 
 typedef struct hamoJournaler {

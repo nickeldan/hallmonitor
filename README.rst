@@ -3,8 +3,8 @@ Hall Monitor
 ============
 
 :Author: Daniel Walker
-:Version: 0.2.0
-:Date: 2022-01-22
+:Version: 0.3.0
+:Date: 2022-01-31
 
 Overview
 ========
@@ -69,8 +69,8 @@ where **hamoRecord** is defined by the same file as
         uint16_t dport;
         uint8_t source_address[16];
         uint8_t destination_address[16];
-        uint8_t tcp_flags;
         unsigned int ipv6 : 1;
+        unsigned int ack_flag : 1;
     } hamoRecord;
 
 A journaler can be added to a dispatcher by
@@ -137,8 +137,8 @@ appending it to the array.  An entry is defined by
 Each field, if set, represents a feature that a packet must meet in order to be whitelisted.  **saddr** and
 **daddr**, the source and destination IP addresses, respectively, are considered unset if their first
 character **'\0'**.  **port** is considered unset if it is 0.  At least one field must be set.  For example,
-if **saddr** is set to "1.2.3.4" and **port** is set to 8080, then any packet sent from 1.2.3.4 where either
-the source or destination port is 8080 will be whitelisted.
+if **saddr** is set to "1.2.3.4" and **port** is set to 8080, then SYN packets sent from 1.2.3.4 to port 8080
+as well as SYN-ACK packets sent from port 8080 to 1.2.3.4 will be ignored.
 
 If both **saddr** and **daddr** are set, then they must obviously be of the same IP version.
 

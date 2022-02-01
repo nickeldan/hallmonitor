@@ -9,8 +9,6 @@
 #include <hamo/journal.h>
 #include <hamo/whitelist.h>
 
-#define TCP_ACK_FLAG 0x10
-
 static volatile sig_atomic_t signal_caught;
 
 static void
@@ -37,7 +35,7 @@ printRecord(void *user, const hamoRecord *record)
     inet_ntop(af, &record->source_address, src_buffer, sizeof(src_buffer));
     inet_ntop(af, &record->destination_address, dst_buffer, sizeof(dst_buffer));
 
-    packet_type = (record->tcp_flags & TCP_ACK_FLAG) ? "SYN-ACK" : "SYN";
+    packet_type = (record->ack_flag) ? "SYN-ACK" : "SYN";
 
     if (record->ipv6) {
         VASQ_INFO(hamo_logger, "%s packet sent from [%s]:%u to [%s]:%u", packet_type, src_buffer,
