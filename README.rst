@@ -136,9 +136,9 @@ appending it to the array.  An entry is defined by
 
 Each field, if set, represents a feature that a packet must meet in order to be whitelisted.  **saddr** and
 **daddr**, the source and destination IP addresses, respectively, are considered unset if their first
-character **'\0'**.  **port** is considered unset if it is 0.  At least one field must be set.  For example,
-if **saddr** is set to "1.2.3.4" and **port** is set to 8080, then SYN packets sent from 1.2.3.4 to port 8080
-as well as SYN-ACK packets sent from port 8080 to 1.2.3.4 will be ignored.
+character is **'\\0'**.  **port** is considered unset if it is 0.  At least one field must be set.  For
+example, if **saddr** is set to "1.2.3.4" and **port** is set to 8080, then SYN packets sent from 1.2.3.4 to
+port 8080 as well as SYN-ACK packets sent from port 8080 to 1.2.3.4 will be ignored.
 
 If both **saddr** and **daddr** are set, then they must obviously be of the same IP version.
 
