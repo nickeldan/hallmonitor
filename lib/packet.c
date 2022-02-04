@@ -118,13 +118,13 @@ parsePacket(u_char *user, const struct pcap_pkthdr *header, const u_char *data)
     unsigned int size = header->caplen, so_far;
     const struct parseCtx *ctx = (const struct parseCtx *)user;
     hamoRecord record = {0};
-    void *item;
 
     VASQ_DEBUG(hamo_logger, "Captured %u bytes of a %u-byte packet", size, header->len);
     VASQ_HEXDUMP(hamo_logger, "Packet", data, size);
 
     so_far = determineLinkLayerSize(ctx->link_type, data, size);
     if (so_far == (unsigned int)-1) {
+        VASQ_ERROR(hamo_logger, "We've somehow captured a packet using an unsupported link layer protocol");
         return;
     }
 
@@ -165,11 +165,15 @@ parsePacket(u_char *user, const struct pcap_pkthdr *header, const u_char *data)
         (*ctx->count)++;
     }
 
-    ARRAY_FOR_EACH(ctx->journalers, item)
-    {
-        const hamoJournaler *journaler = item;
+    if (ctx->journalers) {
+        void *item;
 
-        journaler->func(journaler->user, &record);
+        ARRAY_FOR_EACH(ctx->journalers, item)
+        {
+            const hamoJournaler *journaler = item;
+
+            journaler->func(journaler->user, &record);
+        }
     }
 }
 
