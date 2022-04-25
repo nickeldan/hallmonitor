@@ -5,4 +5,5 @@
 *.code-workspace
 deps.mk
 main_deps.mk
+hamo
 README.pdf
