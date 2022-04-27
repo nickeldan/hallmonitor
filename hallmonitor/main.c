@@ -17,7 +17,7 @@ static void
 usage(const char *exec)
 {
     printf(
-        "Usage: %s [-d <network device>]* [-w <whitelist file>]*"
+        "Usage: %s [-d <network device>]* [-w <whitelist file>]* [-f]"
 #ifndef VASQ_NO_LOGGING
         " [-v]"
 #endif
@@ -148,11 +148,17 @@ main(int argc, char **argv)
             break;
 
         case 'f':
+#ifdef __linux__
             ret = hamoArrayAppend(&dispatcher.journalers, &proc_journaler);
             if (ret != HAMO_RET_OK) {
                 goto done;
             }
             break;
+#else
+            fprintf(stderr, "The -f option is only available on Linux.\n");
+            ret = HAMO_RET_USAGE;
+            goto done;
+#endif
 
 #ifdef VASQ_NO_LOGGING
 

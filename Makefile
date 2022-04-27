@@ -15,12 +15,19 @@ all: hamo
 HAMO_DIR := .
 include make.mk
 
-REAP_DIR := packages/reap
-include $(REAP_DIR)/make.mk
-
 MAIN_HEADER_FILES := $(wildcard hallmonitor/*.h)
 MAIN_SOURCE_FILES := $(wildcard hallmonitor/*.c)
 MAIN_OBJECT_FILES := $(patsubst %.c,%.o,$(MAIN_SOURCE_FILES))
+MAIN_LDFLAGS := -lpcap
+
+ifeq ($(shell uname),Linux)
+
+REAP_DIR := packages/reap
+include $(REAP_DIR)/make.mk
+
+MAIN_LDFLAGS += -pthread
+
+endif
 
 MAIN_DEPS_FILE := main_deps.mk
 DEPS_FILES += $(MAIN_DEPS_FILE)
@@ -42,7 +49,7 @@ endif
 libs: $(HAMO_SHARED_LIBRARY) $(HAMO_STATIC_LIBRARY)
 
 hamo: $(MAIN_OBJECT_FILES) $(HAMO_STATIC_LIBRARY) $(REAP_STATIC_LIBRARY) $(VASQ_STATIC_LIBRARY)
-	$(CC) $(CFLAGS) $(HAMO_INCLUDE_FLAGS) -o $@ $^ -lpcap -pthread
+	$(CC) $(CFLAGS) $(HAMO_INCLUDE_FLAGS) -o $@ $^ $(MAIN_LDFLAGS)
 
 clean: $(CLEAN_TARGETS)
 	@rm -f hamo $(MAIN_OBJECT_FILES) $(DEPS_FILES)

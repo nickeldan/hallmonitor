@@ -1,3 +1,6 @@
 [submodule "vanilla_squad"]
 	path = packages/vanilla_squad
 	url = https://github.com/nickeldan/vanilla_squad
+[submodule "packages/reap"]
+	path = packages/reap
+	url = https://github.com/nickeldan/reap
