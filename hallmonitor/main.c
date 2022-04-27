@@ -9,13 +9,15 @@
 #include <hamo/journal.h>
 #include <hamo/whitelist.h>
 
+#include "proc_search.h"
+
 static volatile sig_atomic_t signal_caught;
 
 static void
 usage(const char *exec)
 {
     printf(
-        "Usage: %s [-d <network device>]* [-w <whitelist file>]*"
+        "Usage: %s [-d <network device>]* [-w <whitelist file>]* [-f]"
 #ifndef VASQ_NO_LOGGING
         " [-v]"
 #endif
@@ -72,15 +74,16 @@ main(int argc, char **argv)
     hamoArray devices = HAMO_ARRAY(const char *);
     hamoArray whitelist_entries = HAMO_ARRAY(hamoWhitelistEntry);
     hamoDispatcher dispatcher = HAMO_DISPATCHER_INIT;
-    hamoJournaler journaler = {.func = printRecord, .user = NULL};
+    hamoJournaler journaler = {.func = printRecord, .user = NULL},
+                  proc_journaler = {.func = startProcSearch, .user = NULL};
 
 #ifdef VASQ_NO_LOGGING
 
-#define GETOPT_FORMAT "d:w:h"
+#define GETOPT_FORMAT "d:w:fh"
 
 #else
 
-#define GETOPT_FORMAT "d:w:vh"
+#define GETOPT_FORMAT "d:w:fvh"
 
     vasqLogLevel_t level = VASQ_LL_INFO;
     const char *format_string = "%t [%L]%_ %M\n";
@@ -89,11 +92,12 @@ main(int argc, char **argv)
         switch (option) {
         case 'v':
             level = VASQ_LL_DEBUG;
-            format_string = "%t [%L]%_ %f:%l: %M\n";
+            format_string = "%T: %t [%L]%_ %F:%f:%l: %M\n";
             break;
 
         case 'd':
-        case 'w': break;
+        case 'w':
+        case 'f': break;
 
         case 'h': usage(argv[0]); return HAMO_RET_OK;
 
@@ -112,6 +116,11 @@ main(int argc, char **argv)
     VASQ_INFO(hamo_logger, "Running Hall Monitor %s", HAMO_VERSION);
 
 #endif  // VASQ_NO_LOGGING
+
+    ret = hamoArrayAppend(&dispatcher.journalers, &journaler);
+    if (ret != HAMO_RET_OK) {
+        goto done;
+    }
 
     while ((option = getopt(argc, argv, GETOPT_FORMAT)) != -1) {
         switch (option) {
@@ -138,6 +147,19 @@ main(int argc, char **argv)
             }
             break;
 
+        case 'f':
+#ifdef __linux__
+            ret = hamoArrayAppend(&dispatcher.journalers, &proc_journaler);
+            if (ret != HAMO_RET_OK) {
+                goto done;
+            }
+            break;
+#else
+            fprintf(stderr, "The -f option is only available on Linux.\n");
+            ret = HAMO_RET_USAGE;
+            goto done;
+#endif
+
 #ifdef VASQ_NO_LOGGING
 
         case 'h':
@@ -152,11 +174,6 @@ main(int argc, char **argv)
 
 #endif  // VASQ_NO_LOGGING
         }
-    }
-
-    ret = hamoArrayAppend(&dispatcher.journalers, &journaler);
-    if (ret != HAMO_RET_OK) {
-        goto done;
     }
 
     if (devices.length > 0) {
