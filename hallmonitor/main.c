@@ -78,11 +78,8 @@ main(int argc, char **argv)
                   proc_journaler = {.func = startProcSearch, .user = NULL};
 
 #ifdef VASQ_NO_LOGGING
-
 #define GETOPT_FORMAT "d:w:fh"
-
 #else
-
 #define GETOPT_FORMAT "d:w:fvh"
 
     vasqLogLevel_t level = VASQ_LL_INFO;
@@ -161,7 +158,6 @@ main(int argc, char **argv)
 #endif
 
 #ifdef VASQ_NO_LOGGING
-
         case 'h':
             usage(argv[0]);
             ret = HAMO_RET_OK;
@@ -171,7 +167,6 @@ main(int argc, char **argv)
             usage(argv[0]);
             ret = HAMO_RET_USAGE;
             goto done;
-
 #endif  // VASQ_NO_LOGGING
         }
     }
