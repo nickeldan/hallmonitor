@@ -76,10 +76,14 @@ main(int argc, char **argv)
     hamoArray devices = HAMO_ARRAY(const char *);
     hamoArray whitelist_entries = HAMO_ARRAY(hamoWhitelistEntry);
     hamoDispatcher dispatcher = HAMO_DISPATCHER_INIT;
-    hamoJournaler journaler = {.func = printRecord, .user = NULL}
+    hamoJournaler journaler =
+    {.func = printRecord,
+     .user = NULL }
 #ifdef __linux__
     ,
-                  proc_journaler = {.func = startProcSearch, .user = NULL}
+                  proc_journaler =
+    {.func = startProcSearch,
+     .user = NULL }
 #endif
     ;
 
@@ -95,7 +99,11 @@ main(int argc, char **argv)
         switch (option) {
         case 'v':
             level = VASQ_LL_DEBUG;
-            format_string = "%T: %t [%L]%_ %F:%f:%l: %M\n";
+            format_string =
+#ifdef __linux__
+                "%T: "
+#endif
+                "%t [%L]%_ %F:%f:%l: %M\n";
             break;
 
         case 'd':
