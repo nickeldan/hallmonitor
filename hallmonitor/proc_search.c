@@ -217,4 +217,4 @@ startProcSearch(void *user, const hamoRecord *record)
     sem_wait(&args_struct.sem);
 }
 
-#endif // __linux__
+#endif  // __linux__

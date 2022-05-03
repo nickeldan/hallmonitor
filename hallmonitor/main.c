@@ -9,7 +9,9 @@
 #include <hamo/journal.h>
 #include <hamo/whitelist.h>
 
+#ifdef __linux__
 #include "proc_search.h"
+#endif
 
 static volatile sig_atomic_t signal_caught;
 
@@ -74,8 +76,12 @@ main(int argc, char **argv)
     hamoArray devices = HAMO_ARRAY(const char *);
     hamoArray whitelist_entries = HAMO_ARRAY(hamoWhitelistEntry);
     hamoDispatcher dispatcher = HAMO_DISPATCHER_INIT;
-    hamoJournaler journaler = {.func = printRecord, .user = NULL},
-                  proc_journaler = {.func = startProcSearch, .user = NULL};
+    hamoJournaler journaler = {.func = printRecord, .user = NULL}
+#ifdef __linux__
+    ,
+                  proc_journaler = {.func = startProcSearch, .user = NULL}
+#endif
+    ;
 
 #ifdef VASQ_NO_LOGGING
 #define GETOPT_FORMAT "d:w:fh"
