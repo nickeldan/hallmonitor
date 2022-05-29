@@ -24,7 +24,7 @@ hamoArrayAppend(hamoArray *array, const void *item)
             (array->capacity == 0) ? INITIAL_CAPACITY : CAPACITY_EXPANSION(array->capacity);
         void *success;
 
-        success = VASQ_REALLOC(hamo_logger, array->data, new_capacity * array->item_size);
+        success = realloc(array->data, new_capacity * array->item_size);
         if (!success) {
             return HAMO_RET_OUT_OF_MEMORY;
         }
