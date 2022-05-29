@@ -3,8 +3,8 @@ Hall Monitor
 ============
 
 :Author: Daniel Walker
-:Version: 0.5.0
-:Date: 2022-04-26
+:Version: 0.5.1
+:Date: 2022-04-29
 
 Overview
 ========

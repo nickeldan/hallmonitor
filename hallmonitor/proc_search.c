@@ -1,18 +1,16 @@
 #ifdef __linux__
 
 #include <arpa/inet.h>
-#include <errno.h>
 #include <stdbool.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/types.h>
 
 #include <pthread.h>
 #include <semaphore.h>
 
-#include <hamo/definitions.h>
 #include <reap/reap.h>
+
+#include <hamo/definitions.h>
 
 #include "proc_search.h"
 
@@ -22,66 +20,103 @@ struct threadArgs {
 };
 
 static bool
-ipv4RecordMatches(const hamoRecord *record, uint32_t addr_1, unsigned int port_1, uint32_t addr_2,
-                  unsigned int port_2)
+ipv4RecordMatches(const reapNetResult *result, const hamoRecord *record)
 {
-    return record->sport == port_1 && record->dport == port_2 &&
-           memcmp(record->source_address, &addr_1, IPV4_SIZE) == 0 &&
-           memcmp(record->destination_address, &addr_2, IPV4_SIZE) == 0;
-}
-
-static bool
-findInodeOfSocket(const hamoRecord *record, ino_t *inode)
-{
-    bool ret = false;
-    char line[256];
-    FILE *f;
-
-#ifdef HAMO_IPV6_SUPPORTED
-#error "IPv6 is not currently supported."
-#endif
-
-    f = fopen("/proc/net/tcp", "r");
-    if (!f) {
-        VASQ_ERROR(hamo_logger, "Failed to open /proc/net/tcp: %s", strerror(errno));
+    if (result->remote.port == 0) {
         return false;
     }
 
-    if (!fgets(line, sizeof(line), f)) {
-        VASQ_ERROR(hamo_logger, "Failed to read from /proc/net/tcp");
-        goto done;
+    if (result->local.port == record->sport && result->remote.port == record->dport &&
+        memcmp(result->local.address, record->source_address, IPV4_SIZE) == 0 &&
+        memcmp(result->remote.address, record->destination_address, IPV4_SIZE) == 0) {
+        return true;
     }
 
-    while (fgets(line, sizeof(line), f)) {
-        unsigned int local_addr, remote_addr, local_port, remote_port;
-        unsigned long inode_long;
+    return result->remote.port == record->sport && result->local.port == record->dport &&
+           memcmp(result->remote.address, record->source_address, IPV4_SIZE) == 0 &&
+           memcmp(result->local.address, record->destination_address, IPV4_SIZE) == 0;
+}
 
-        if (sscanf(line, " %*u: %x:%x %x:%x %*s %*s %*s %*s %*u %*u %lu ", &local_addr, &local_port,
-                   &remote_addr, &remote_port, &inode_long) != 5) {
-            unsigned int len;
+static bool
+ipv6RecordMatches(const reapNet6Result *result, const hamoRecord *record)
+{
+    if (result->remote.port == 0) {
+        return false;
+    }
 
-            len = strnlen(line, sizeof(line));
-            if (len > 0 && line[len - 1] == '\n') {
-                line[len - 1] = '\0';
-            }
+    if (result->local.port == record->sport && result->remote.port == record->dport &&
+        memcmp(&result->local.address, record->source_address, IPV6_SIZE) == 0 &&
+        memcmp(&result->remote.address, record->destination_address, IPV6_SIZE) == 0) {
+        return true;
+    }
 
-            VASQ_ERROR(hamo_logger, "Malformed line in /proc/net/tcp: %s", line);
-            goto done;
-        }
+    return result->remote.port == record->dport && result->local.port == record->sport &&
+           memcmp(&result->remote.address, record->source_address, IPV6_SIZE) == 0 &&
+           memcmp(&result->local.address, record->destination_address, IPV6_SIZE) == 0;
+}
 
-        if (ipv4RecordMatches(record, local_addr, local_port, remote_addr, remote_port) ||
-            ipv4RecordMatches(record, remote_addr, remote_port, local_addr, local_port)) {
-            VASQ_DEBUG(hamo_logger, "Record matches socket at inode %lu", inode_long);
-            *inode = inode_long;
+static bool
+findInodeOfSocket4(const hamoRecord *record, ino_t *inode)
+{
+    bool ret = false;
+    int errnum;
+    reapNetIterator iterator;
+    reapNetResult result;
+
+    if (reapNetIteratorInit(&iterator, true) != REAP_RET_OK) {
+        VASQ_ERROR(hamo_logger, "reapNetIteratorInit: %s", reapGetError());
+        return false;
+    }
+
+    while ((errnum = reapNetIteratorNext(&iterator, &result)) == REAP_RET_OK) {
+        VASQ_DEBUG(hamo_logger, "Examining socket at inode %lu", (unsigned long)result.inode);
+        if (ipv4RecordMatches(&result, record)) {
+            *inode = result.inode;
             ret = true;
+            VASQ_DEBUG(hamo_logger, "SYN packet matches socket at inode %lu", (unsigned long)result.inode);
             goto done;
         }
     }
 
-    VASQ_DEBUG(hamo_logger, "No entry in /proc/net/tcp matches record");
+    if (errnum != REAP_RET_DONE) {
+        VASQ_ERROR(hamo_logger, "reapNetIteratorNext: %s", reapGetError());
+    }
 
 done:
-    fclose(f);
+
+    reapNetIteratorClose(&iterator);
+    return ret;
+}
+
+static bool
+findInodeOfSocket6(const hamoRecord *record, ino_t *inode)
+{
+    bool ret = false;
+    int errnum;
+    reapNet6Iterator iterator;
+    reapNet6Result result;
+
+    if (reapNet6IteratorInit(&iterator, true) != REAP_RET_OK) {
+        VASQ_ERROR(hamo_logger, "reapNet6IteratorInit: %s", reapGetError());
+        return false;
+    }
+
+    while ((errnum = reapNet6IteratorNext(&iterator, &result)) == REAP_RET_OK) {
+        if (ipv6RecordMatches(&result, record)) {
+            *inode = result.inode;
+            ret = true;
+            VASQ_DEBUG(hamo_logger, "SYN packet matches socket at inode %lu", (unsigned long)result.inode);
+            goto done;
+        }
+    }
+
+    if (errnum != REAP_RET_DONE) {
+        VASQ_ERROR(hamo_logger, "reapNet6IteratorNext: %s", reapGetError());
+    }
+
+done:
+
+    reapNet6IteratorClose(&iterator);
     return ret;
 }
 
@@ -99,18 +134,9 @@ threadFunc(void *args)
     memcpy(&record, args_struct->record, sizeof(record));
     sem_post(&args_struct->sem);
 
-    if (!findInodeOfSocket(&record, &inode)) {
-        hamoRecord record_copy;
-
-        VASQ_DEBUG(hamo_logger, "Zeroing out source fields and searching again");
-
-        memcpy(&record_copy, &record, sizeof(record));
-        memset(&record_copy.source_address, 0, sizeof(record_copy.source_address));
-        record.sport = 0;
-
-        if (!findInodeOfSocket(&record_copy, &inode)) {
-            return NULL;
-        }
+    if (!(record.ipv6 ? findInodeOfSocket6 : findInodeOfSocket4)(&record, &inode)) {
+        VASQ_WARNING(hamo_logger, "No inode found matching SYN packet");
+        return NULL;
     }
 
     snprintf(expectation, sizeof(expectation), "socket:[%lu]", (unsigned long)inode);
