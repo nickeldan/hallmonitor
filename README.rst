@@ -3,8 +3,8 @@ Hall Monitor
 ============
 
 :Author: Daniel Walker
-:Version: 0.5.1
-:Date: 2022-04-29
+:Version: 0.6.0
+:Date: 2022-05-29
 
 Overview
 ========
@@ -67,8 +67,8 @@ where **hamoRecord** is defined by the same file as
         struct timeval timestamp;
         uint16_t sport;
         uint16_t dport;
-        uint8_t source_address[16];
-        uint8_t destination_address[16];
+        uint8_t saddr[16];
+        uint8_t daddr[16];
         unsigned int ipv6 : 1;
         unsigned int ack_flag : 1;
     } hamoRecord;

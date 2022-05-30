@@ -42,8 +42,8 @@ printRecord(void *user, const hamoRecord *record)
     char src_buffer[INET6_ADDRSTRLEN], dst_buffer[INET6_ADDRSTRLEN];
     const char *packet_type;
 
-    inet_ntop(af, &record->source_address, src_buffer, sizeof(src_buffer));
-    inet_ntop(af, &record->destination_address, dst_buffer, sizeof(dst_buffer));
+    inet_ntop(af, &record->saddr, src_buffer, sizeof(src_buffer));
+    inet_ntop(af, &record->daddr, dst_buffer, sizeof(dst_buffer));
 
     packet_type = (record->ack_flag) ? "SYN-ACK" : "SYN";
 
@@ -76,14 +76,10 @@ main(int argc, char **argv)
     hamoArray devices = HAMO_ARRAY(const char *);
     hamoArray whitelist_entries = HAMO_ARRAY(hamoWhitelistEntry);
     hamoDispatcher dispatcher = HAMO_DISPATCHER_INIT;
-    hamoJournaler journaler =
-    {.func = printRecord,
-     .user = NULL }
+    hamoJournaler journaler = {.func = printRecord, .user = NULL}
 #ifdef __linux__
     ,
-                  proc_journaler =
-    {.func = startProcSearch,
-     .user = NULL }
+                  proc_journaler = {.func = startProcSearch, .user = NULL}
 #endif
     ;
 

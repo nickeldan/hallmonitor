@@ -3,7 +3,7 @@
 
 #include <vasq/logger.h>
 
-#define HAMO_VERSION "0.5.1"
+#define HAMO_VERSION "0.6.0"
 
 //#define HAMO_IPV6_SUPPORTED
 

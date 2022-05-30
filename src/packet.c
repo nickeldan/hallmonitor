@@ -86,8 +86,8 @@ parseIPv4Header(const uint8_t *header, unsigned int size, hamoRecord *record, un
         return false;
     }
 
-    memcpy(&record->source_address, header + IPV4_SRC_OFFSET, IPV4_SIZE);
-    memcpy(&record->destination_address, header + IPV4_DST_OFFSET, IPV4_SIZE);
+    memcpy(&record->saddr, header + IPV4_SRC_OFFSET, IPV4_SIZE);
+    memcpy(&record->daddr, header + IPV4_DST_OFFSET, IPV4_SIZE);
 
     return true;
 }
