@@ -187,11 +187,9 @@ Executable
 The build process (see below), in addition to shared and static libraries, builds an executable called
 "hamo".  Several command-line options are available:
 
-- -d <network_device>: Set a network device to be monitored.  This option can be used more than once.  If no
-    devices are added, then the "any" device will be used.
+- -d <network_device>: Set a network device to be monitored.  This option can be used more than once.  If no devices are added, then the "any" device will be used.
 - -w <whitelist_file>: Load whitelist entries from a file.  This option can be used more than once.
-- -f: Add a journaler that, for each SYN packet, searches procfs to find an associated process.  Only
-    available on Linux.
+- -f: Add a journaler that, for each SYN packet, searches procfs to find an associated process.  Only available on Linux.
 - -v: Enable verbose logging.
 - -h: Show usage information.
 
