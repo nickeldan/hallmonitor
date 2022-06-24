@@ -3,7 +3,7 @@
 #include <arpa/inet.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <string.h>
+#include <sys/stat.h>
 
 #include <pthread.h>
 #include <semaphore.h>
@@ -76,7 +76,6 @@ threadFunc(void *args)
 {
     int ret;
     ino_t inode;
-    char expectation[20];
     struct threadArgs *args_struct = args;
     hamoRecord record;
     reapProcIterator iterator;
@@ -89,8 +88,6 @@ threadFunc(void *args)
         VASQ_WARNING(hamo_logger, "No inode found matching SYN packet");
         return NULL;
     }
-
-    snprintf(expectation, sizeof(expectation), "socket:[%lu]", (unsigned long)inode);
 
     ret = reapProcIteratorInit(&iterator);
     if (ret != REAP_RET_OK) {
@@ -108,7 +105,7 @@ threadFunc(void *args)
         }
 
         while (reapFdIteratorNext(&fd_iterator, &result) == REAP_RET_OK) {
-            if (result.inode == inode && strncmp(result.file, expectation, sizeof(expectation)) == 0) {
+            if (result.inode == inode && S_ISSOCK(result.mode)) {
                 int so_far;
                 char src_addr_buffer[INET6_ADDRSTRLEN], dst_addr_buffer[INET6_ADDRSTRLEN], msg[256];
 
