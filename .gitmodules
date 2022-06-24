@@ -2,7 +2,7 @@
 	path = packages/vanilla_squad
 	url = https://github.com/nickeldan/vanilla_squad
 	tag = 5.2.3
-[submodule "packages/reap"]
+[submodule "reap"]
 	path = packages/reap
 	url = https://github.com/nickeldan/reap
 	tag = 0.4.0
