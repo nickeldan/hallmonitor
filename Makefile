@@ -44,12 +44,15 @@ include $(MAIN_DEPS_FILE)
 
 endif
 
-.PHONY: all libs clean $(CLEAN_TARGETS)
+.PHONY: all libs format clean $(CLEAN_TARGETS)
 
 libs: $(HAMO_SHARED_LIBRARY) $(HAMO_STATIC_LIBRARY)
 
 hamo: $(MAIN_OBJECT_FILES) $(HAMO_STATIC_LIBRARY) $(REAP_STATIC_LIBRARY) $(VASQ_STATIC_LIBRARY)
 	$(CC) $(CFLAGS) $(HAMO_INCLUDE_FLAGS) -o $@ $^ $(MAIN_LDFLAGS)
+
+format:
+	find . -path ./packages -prune -o -name '*.[hc]' -print0 | xargs -0 clang-format -i
 
 clean: $(CLEAN_TARGETS)
 	@rm -f hamo $(MAIN_OBJECT_FILES) $(DEPS_FILES)

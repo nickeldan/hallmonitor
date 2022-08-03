@@ -28,7 +28,7 @@ include $(HAMO_DEPS_FILE)
 endif
 
 $(HAMO_SHARED_LIBRARY): $(HAMO_OBJECT_FILES)
-	$(CC) -shared -o $@ $^
+	$(CC) $(LDFLAGS) -shared -o $@ $^
 
 $(HAMO_STATIC_LIBRARY): $(HAMO_OBJECT_FILES)
 	$(AR) rcs $@ $^
