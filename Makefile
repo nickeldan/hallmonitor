@@ -52,7 +52,7 @@ hamo: $(MAIN_OBJECT_FILES) $(HAMO_STATIC_LIBRARY) $(REAP_STATIC_LIBRARY) $(VASQ_
 	$(CC) $(CFLAGS) $(HAMO_INCLUDE_FLAGS) -o $@ $^ $(MAIN_LDFLAGS)
 
 format:
-	find . -path ./packages -prune -o -name '*.[hc]' -print0 | xargs -0 clang-format -i
+	find . -path ./packages -prune -o -name '*.[hc]' -print0 | xargs -0 -n 1 clang-format -i
 
 clean: $(CLEAN_TARGETS)
 	@rm -f hamo $(MAIN_OBJECT_FILES) $(DEPS_FILES)
